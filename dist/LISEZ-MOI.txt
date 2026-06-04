@@ -1,0 +1,59 @@
+================================================================
+   yt-dlp 4K Pro Generator  -  Mode d'emploi
+================================================================
+
+UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
+
+----------------------------------------------------------------
+ INSTALLATION (a faire une seule fois)
+----------------------------------------------------------------
+
+1. Double-cliquez sur  install.bat
+   -> Il telecharge automatiquement les outils necessaires
+      (yt-dlp, FFmpeg, Deno) dans le dossier "bin".
+   -> Une connexion internet est requise.
+   -> Si Windows SmartScreen apparait : "Informations complementaires"
+      puis "Executer quand meme".
+
+----------------------------------------------------------------
+ UTILISATION
+----------------------------------------------------------------
+
+1. Double-cliquez sur  launch.bat
+   -> L'interface s'ouvre dans votre navigateur.
+   -> Une fenetre noire "Terminal" s'ouvre aussi : c'est normal,
+      c'est la que les videos se telechargent.
+
+2. Dans l'interface :
+   - Collez vos liens YouTube (un par ligne)
+   - Choisissez la qualite
+   - Cliquez sur "Copier la commande"
+
+3. Cliquez dans la fenetre noire "Terminal", faites un CLIC DROIT
+   (ce qui colle la commande), puis appuyez sur ENTREE.
+
+4. La video est enregistree dans ce dossier.
+
+----------------------------------------------------------------
+ NOTES
+----------------------------------------------------------------
+
+- FFmpeg est inclus : laissez le champ "FFmpeg" VIDE dans l'interface.
+- Pour mettre les outils a jour, relancez simplement install.bat.
+- Tout reste dans ce dossier, rien n'est installe ailleurs sur le PC.
+
+----------------------------------------------------------------
+ CREDITS / LICENCES
+----------------------------------------------------------------
+
+Cet outil telecharge et utilise des logiciels tiers gratuits :
+- yt-dlp  : https://github.com/yt-dlp/yt-dlp        (Unlicense)
+- FFmpeg  : https://ffmpeg.org                      (GPL/LGPL)
+- Deno    : https://deno.com                        (MIT)
+
+Ces logiciels ne sont PAS redistribues ici : ils sont telecharges
+par install.bat depuis leurs sites officiels.
+================================================================
+
+2026 - Elisalien
+pour Lucien
