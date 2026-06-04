@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yt-dlp · 4K Pro Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.18);
+            --text: #f4f7fb;
+            --text-dim: #9aa7bd;
+            --text-faint: #64748b;
+            --glass-bg: rgba(255, 255, 255, 0.045);
+            --glass-border: rgba(255, 255, 255, 0.09);
+            --field-bg: rgba(10, 16, 30, 0.45);
+            --radius: 20px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 32px 20px;
+            background: #060912;
+            position: relative;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient aurora background */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(110px);
+            z-index: 0;
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        body::before {
+            width: 520px; height: 520px;
+            background: radial-gradient(circle, #0ea5e9, transparent 65%);
+            top: -160px; left: -120px;
+            animation: drift1 18s ease-in-out infinite alternate;
+        }
+        body::after {
+            width: 560px; height: 560px;
+            background: radial-gradient(circle, #7c3aed, transparent 65%);
+            bottom: -200px; right: -140px;
+            animation: drift2 22s ease-in-out infinite alternate;
+        }
+        @keyframes drift1 {
+            to { transform: translate(80px, 60px) scale(1.1); }
+        }
+        @keyframes drift2 {
+            to { transform: translate(-70px, -50px) scale(1.15); }
+        }
+
+        .card {
+            position: relative;
+            z-index: 1;
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px) saturate(160%);
+            -webkit-backdrop-filter: blur(28px) saturate(160%);
+            padding: 2.75rem 2.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            width: 100%;
+            max-width: 640px;
+            animation: rise 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(18px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 1.55rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.4rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin: 0 0 2rem;
+            font-weight: 400;
+        }
+
+        .group { margin-bottom: 1.4rem; }
+
+        label {
+            display: block;
+            margin-bottom: 0.55rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 13px 15px;
+            background: var(--field-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            font-size: 0.95rem;
+            color: var(--text);
+            transition: border-color 0.25s, box-shadow 0.25s, background 0.25s;
+            font-family: inherit;
+        }
+        textarea { resize: vertical; min-height: 96px; line-height: 1.5; }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239aa7bd' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+        select option { background: #0f172a; color: var(--text); }
+
+        ::placeholder { color: var(--text-faint); }
+
+        input[type="text"]:focus, textarea:focus, select:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 4px var(--accent-soft);
+            background: rgba(10, 16, 30, 0.6);
+        }
+
+        .result-box {
+            background: rgba(2, 6, 14, 0.55);
+            color: #6ee7a8;
+            padding: 1.25rem 1.4rem;
+            border-radius: 14px;
+            margin-top: 0.55rem;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            word-break: break-all;
+            font-size: 0.85rem;
+            line-height: 1.7;
+            border: 1px solid var(--glass-border);
+            min-height: 58px;
+        }
+        .result-box.placeholder { color: var(--text-faint); font-style: italic; }
+
+        .copy-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #38bdf8, #2563eb);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            margin-top: 1.4rem;
+            transition: transform 0.18s, box-shadow 0.25s, filter 0.25s;
+            box-shadow: 0 10px 28px rgba(37, 99, 235, 0.35);
+            font-family: inherit;
+        }
+        .copy-btn:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 16px 34px rgba(37, 99, 235, 0.45); }
+        .copy-btn:active { transform: translateY(0); }
+
+        .hint {
+            font-size: 0.78rem;
+            color: var(--text-faint);
+            margin-top: 7px;
+            line-height: 1.5;
+        }
+
+        .warning {
+            color: #fcd34d;
+            font-size: 0.82rem;
+            margin-top: 1.1rem;
+            display: flex;
+            gap: 9px;
+            align-items: flex-start;
+            background: rgba(251, 191, 36, 0.08);
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.22);
+            line-height: 1.5;
+        }
+
+        .checkbox-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 14px 16px;
+            background: var(--field-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            transition: border-color 0.25s, background 0.25s;
+        }
+        .checkbox-card:hover { border-color: rgba(56, 189, 248, 0.4); }
+        .checkbox-card input[type="checkbox"] {
+            width: 18px; height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .checkbox-card span { font-weight: 500; font-size: 0.92rem; color: var(--text); }
+
+        .output-label { display: flex; align-items: center; justify-content: space-between; }
+
+        .credit {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 14px;
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-faint);
+        }
+        .credit::before, .credit::after {
+            content: "";
+            height: 1px;
+            flex: 1;
+            background: linear-gradient(90deg, transparent, var(--glass-border), transparent);
+        }
+        .credit .heart { color: var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50%      { opacity: 1;   transform: scale(1.18); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="credit">made with <span class="heart">♥</span> by elisalien</div>
+    <h1>🎬 yt-dlp 4K Merger</h1>
+    <p class="subtitle">Générateur de commandes téléchargement &amp; fusion haute qualité</p>
+
+    <div class="group">
+        <label for="url">URLs des vidéos <span style="text-transform:none;letter-spacing:0;color:var(--text-faint)">(une par ligne)</span></label>
+        <textarea id="url" rows="4" placeholder="Collez vos URLs YouTube ici…&#10;https://www.youtube.com/watch?v=…&#10;https://www.youtube.com/watch?v=…" oninput="generateCommand()"></textarea>
+    </div>
+
+    <div class="group">
+        <label for="ffmpeg">Chemin vers FFmpeg</label>
+        <input type="text" id="ffmpeg" value="C:\ffmpeg\bin\ffmpeg.exe" placeholder="Ex : C:\ffmpeg\bin\ffmpeg.exe" oninput="generateCommand()">
+        <div class="hint">Obligatoire pour fusionner le son et l'image en 4K et pour la conversion MP3.</div>
+    </div>
+
+    <div class="group">
+        <label for="quality">Qualité cible</label>
+        <select id="quality" onchange="generateCommand()">
+            <option value="best">🌟 Ultra Haute Qualité (Sans limite / 4K / 8K)</option>
+            <option value="2160">📺 4K (Max 2160p)</option>
+            <option value="1440">🖥️ 2K (Max 1440p)</option>
+            <option value="1080">📱 Full HD (1080p)</option>
+            <option value="hap">🎛️ Resolume / Alley (codec HAP .mov)</option>
+            <option value="hapq">🎛️ Resolume / Alley — HAP Q (qualité max .mov)</option>
+            <option value="mp3">🎵 MP3 (Audio uniquement, qualité maximale)</option>
+        </select>
+    </div>
+
+    <div class="group">
+        <label class="checkbox-card">
+            <input type="checkbox" id="playlist" onchange="generateCommand()">
+            <span>📚 Télécharger la playlist entière</span>
+        </label>
+        <div class="hint">Cochez si l'URL contient une playlist et que vous voulez tout télécharger.</div>
+    </div>
+
+    <div class="group" style="margin-bottom:0">
+        <label class="output-label" for="commandOutput">Commande générée</label>
+        <div class="result-box placeholder" id="commandOutput">
+            Veuillez entrer au moins une URL…
+        </div>
+    </div>
+
+    <span class="warning"><span>ℹ️</span><span>Si vous obtenez deux fichiers séparés, c'est que le chemin FFmpeg est incorrect.</span></span>
+
+    <button class="copy-btn" onclick="copyToClipboard()">Copier la commande</button>
+</div>
+
+<script>
+    function generateCommand() {
+        const rawUrls = document.getElementById('url').value;
+        const ffmpegPath = document.getElementById('ffmpeg').value.trim();
+        const quality = document.getElementById('quality').value;
+        const isPlaylist = document.getElementById('playlist').checked;
+        const output = document.getElementById('commandOutput');
+
+        // Extraction et nettoyage des URLs (sépare par ligne, enlève les espaces, ignore les lignes vides)
+        const urls = rawUrls.split('\n')
+                            .map(u => u.trim())
+                            .filter(u => u.length > 0);
+
+        if (urls.length === 0) {
+            output.classList.add('placeholder');
+            output.innerText = "Veuillez entrer au moins une URL…";
+            return;
+        }
+        output.classList.remove('placeholder');
+
+        let cmd = `yt-dlp`;
+
+        // On ajoute le chemin FFmpeg
+        if (ffmpegPath) {
+            cmd += ` --ffmpeg-location "${ffmpegPath}"`;
+        }
+
+        if (quality === "mp3") {
+            // Extraction audio MP3 qualité maximale (0 = meilleure qualité VBR)
+            cmd += ` -f bestaudio -x --audio-format mp3 --audio-quality 0`;
+        } else if (quality === "hap") {
+            // Resolume / Alley : ré-encodage en codec HAP (GPU, open-source) dans un .mov.
+            // Lu nativement par Resolume Arena/Avenue et Alley, sans conversion supplémentaire.
+            // -c:v hap -format hap = HAP standard (DXT1) ; audio PCM non compressé pour Resolume.
+            cmd += ` -f "bv*+ba/b" --recode-video mov`;
+            cmd += ` --postprocessor-args "VideoConvertor:-c:v hap -format hap -c:a pcm_s16le"`;
+        } else if (quality === "hapq") {
+            // Resolume / Alley : HAP Q = qualité maximale (encodage YCoCg, ~2x plus lourd).
+            // Idéal pour les rendus VJ haute qualité ; lu nativement par Resolume et Alley.
+            cmd += ` -f "bv*+ba/b" --recode-video mov`;
+            cmd += ` --postprocessor-args "VideoConvertor:-c:v hap -format hap_q -c:a pcm_s16le"`;
+        } else {
+            // -f "bv+ba/b" : Meilleure vidéo + Meilleur audio OU meilleur fichier combiné
+            // --merge-output-format mp4 : Force la fusion en MP4
+            let format = (quality === "best")
+                ? 'bv+ba/b'
+                : `bv*[height<=${quality}]+ba/b[height<=${quality}]`;
+            cmd += ` -f "${format}" --merge-output-format mp4`;
+        }
+
+        // Dossier de destination : yt-dlp crée automatiquement les dossiers manquants
+        // grâce au modèle de sortie (-o). Tout est rangé dans "Téléchargements".
+        const folder = "Téléchargements";
+
+        // Gestion playlist
+        if (isPlaylist) {
+            // Chaque playlist a son propre sous-dossier à l'intérieur de "Téléchargements"
+            cmd += ` --yes-playlist -o "${folder}/%(playlist_title)s/%(playlist_index)s - %(title)s.%(ext)s"`;
+        } else {
+            cmd += ` --no-playlist -o "${folder}/%(title)s.%(ext)s"`;
+        }
+
+        // Ajout de toutes les URLs à la fin de la commande, encapsulées dans des guillemets
+        urls.forEach(url => {
+            cmd += ` "${url}"`;
+        });
+
+        output.innerText = cmd;
+    }
+
+    // Génération initiale au chargement (pour appliquer la valeur FFmpeg par défaut)
+    document.addEventListener('DOMContentLoaded', generateCommand);
+
+    function copyToClipboard() {
+        const text = document.getElementById('commandOutput').innerText;
+        if (text.startsWith("Veuillez")) return;
+
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('.copy-btn');
+            const original = btn.innerText;
+            btn.innerText = "✅ Commande copiée !";
+            btn.style.background = "linear-gradient(135deg, #34d399, #059669)";
+            setTimeout(() => {
+                btn.innerText = original;
+                btn.style.background = "";
+            }, 2000);
+        });
+    }
+</script>
+
+</body>
+</html>
