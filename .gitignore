@@ -1,0 +1,20 @@
+# Médias téléchargés (tests / sorties yt-dlp)
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.mp3
+*.m4a
+*.wav
+Téléchargements/
+
+# Binaires retéléchargés par l'installeur
+*.exe
+bin/
+dist/bin/
+
+# Dossiers de test / temporaires
+dist - Copy/
+NA/
+ffmpeg_tmp/
+*.zip
