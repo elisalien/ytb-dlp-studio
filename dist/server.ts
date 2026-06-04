@@ -5,7 +5,10 @@
 const PORT = 8000;
 const html = await Deno.readTextFile(new URL("./index.html", import.meta.url));
 
-Deno.serve({ port: PORT }, () => {
+// Sécurité : on lie explicitement le serveur à 127.0.0.1 (et non 0.0.0.0)
+// pour qu'il ne soit JAMAIS accessible depuis le réseau local, seulement
+// depuis cette machine.
+Deno.serve({ port: PORT, hostname: "127.0.0.1" }, () => {
   return new Response(html, {
     headers: { "content-type": "text/html; charset=utf-8" },
   });

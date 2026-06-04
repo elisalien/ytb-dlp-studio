@@ -312,23 +312,39 @@
         const isPlaylist = document.getElementById('playlist').checked;
         const output = document.getElementById('commandOutput');
 
-        // Extraction et nettoyage des URLs (sépare par ligne, enlève les espaces, ignore les lignes vides)
-        const urls = rawUrls.split('\n')
-                            .map(u => u.trim())
-                            .filter(u => u.length > 0);
+        // Extraction et nettoyage des URLs (une par ligne, espaces retirés, lignes vides ignorées)
+        const rawLines = rawUrls.split('\n')
+                                .map(u => u.trim())
+                                .filter(u => u.length > 0);
+
+        // Sécurité : on ne garde que de vraies URLs http(s). Cela empêche qu'une
+        // "URL" piégée contenant des guillemets ou des métacaractères shell
+        // (ex. https://x" & del /q *) ne sorte des guillemets et n'injecte une
+        // commande arbitraire dans le terminal au moment du collage.
+        const urls = [];
+        let rejected = 0;
+        for (const line of rawLines) {
+            let parsed;
+            try { parsed = new URL(line); } catch { rejected++; continue; }
+            if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') { rejected++; continue; }
+            // Une URL valide ne contient jamais de " ni de saut de ligne ; on les retire par prudence.
+            urls.push(line.replace(/["\r\n]/g, ''));
+        }
 
         if (urls.length === 0) {
             output.classList.add('placeholder');
-            output.innerText = "Veuillez entrer au moins une URL…";
+            output.innerText = rejected > 0
+                ? "Aucune URL valide. Collez des liens http(s) uniquement."
+                : "Veuillez entrer au moins une URL…";
             return;
         }
         output.classList.remove('placeholder');
 
         let cmd = `yt-dlp`;
 
-        // On ajoute le chemin FFmpeg
+        // On ajoute le chemin FFmpeg (guillemets retirés pour éviter toute injection shell)
         if (ffmpegPath) {
-            cmd += ` --ffmpeg-location "${ffmpegPath}"`;
+            cmd += ` --ffmpeg-location "${ffmpegPath.replace(/["\r\n]/g, '')}"`;
         }
 
         if (quality === "mp3") {
