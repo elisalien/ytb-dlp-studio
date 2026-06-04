@@ -14,7 +14,7 @@ Aucune ligne de commande à connaître : on colle ses liens, on choisit la quali
 - 🎛️ **Export VJ** — ré-encodage en codec **HAP** / **HAP Q** (`.mov`) lu nativement par Resolume Arena/Avenue et Alley.
 - 📚 **Playlists** — téléchargement complet avec sous-dossier par playlist.
 - 📁 **Rangement automatique** — les vidéos atterrissent dans un dossier `Téléchargements/` créé tout seul.
-- 🔌 **100 % portable** — yt-dlp, FFmpeg et Deno sont téléchargés dans un sous-dossier `bin/` ; rien n'est installé ailleurs sur le PC.
+- 🔌 **100 % portable** — yt-dlp et FFmpeg sont téléchargés dans un sous-dossier `bin/` ; rien n'est installé ailleurs sur le PC.
 
 ---
 
@@ -23,7 +23,7 @@ Aucune ligne de commande à connaître : on colle ses liens, on choisit la quali
 - **Windows** 10 / 11
 - Une **connexion internet** (uniquement pour la première installation)
 
-Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
+Aucune installation manuelle de yt-dlp ou FFmpeg : le script s'en charge.
 
 ---
 
@@ -37,7 +37,7 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
    ```
 2. Ouvrez le dossier `dist/`.
 3. Double-cliquez sur **`install.bat`**.
-   - Il télécharge automatiquement depuis les **sites officiels** : yt-dlp, FFmpeg, Deno, dans le sous-dossier `bin/`.
+   - Il télécharge automatiquement depuis les **sites officiels** : yt-dlp et FFmpeg, dans le sous-dossier `bin/`.
    - Si Windows SmartScreen apparaît : *Informations complémentaires* → *Exécuter quand même*.
 
 > Pour **mettre à jour** les outils plus tard, relancez simplement `install.bat`.
@@ -47,7 +47,7 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
 ## 🕹️ Utilisation
 
 1. Double-cliquez sur **`launch.bat`**.
-   - L'interface s'ouvre dans votre navigateur (`http://localhost:8000`).
+   - L'interface s'ouvre directement dans votre navigateur.
    - Une fenêtre « Terminal » noire s'ouvre aussi : **c'est là que les vidéos se téléchargent** (ne la fermez pas).
 2. Dans l'interface :
    - Collez vos liens YouTube (un par ligne).
@@ -63,23 +63,21 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
 
 ```
 dist/
-├── install.bat     # Télécharge yt-dlp + FFmpeg + Deno dans bin/
-├── launch.bat      # Lance le serveur local + ouvre l'interface + un terminal
-├── server.ts       # Mini serveur Deno servant index.html sur 127.0.0.1:8000
+├── install.bat     # Télécharge yt-dlp + FFmpeg dans bin/
+├── launch.bat      # Ouvre l'interface + un terminal prêt à l'emploi
 ├── index.html      # L'interface : génère la commande yt-dlp
 └── bin/            # Outils téléchargés (non versionnés)
 ```
 
 - `index.html` **ne télécharge rien lui-même** : c'est un générateur de commande. Il construit la ligne `yt-dlp …` adaptée à vos choix.
-- Un mini serveur local (Deno) sert la page, car l'API « presse-papier » du navigateur exige un contexte sécurisé (`localhost`).
+- La page s'ouvre directement en local (`file://`) — **aucun serveur requis**. Le bouton « Copier » utilise l'API presse-papier moderne quand elle est disponible, avec un repli `execCommand` qui fonctionne en double-clic.
 - Le téléchargement réel est fait par `yt-dlp` + `FFmpeg` dans le terminal, sur **votre** machine.
 
 ---
 
 ## 🔐 Sécurité
 
-- **Serveur local strict** — `server.ts` écoute uniquement sur `127.0.0.1` (jamais `0.0.0.0`) : il n'est pas accessible depuis le réseau local.
-- **Permissions minimales** — Deno est lancé avec une portée réduite (`--allow-read` limité au dossier de l'outil, `--allow-net=127.0.0.1:8000`).
+- **Aucun serveur, aucun port ouvert** — l'interface tourne en local (`file://`) ; rien n'écoute sur le réseau.
 - **Anti-injection** — l'interface n'accepte que de vraies URLs `http(s)` et retire tout guillemet / saut de ligne des entrées, pour qu'une « URL » piégée ne puisse pas injecter de commande shell dans le terminal au moment du collage.
 - **Téléchargements officiels en HTTPS** — `install.bat` force TLS 1.2 et récupère les binaires depuis les dépôts officiels uniquement.
 
@@ -99,7 +97,6 @@ Cet outil télécharge et utilise des logiciels tiers gratuits (**non redistribu
 |---------|----------------------------------------|------------|------|
 | yt-dlp  | Téléchargeur vidéo                      | Unlicense  | <https://github.com/yt-dlp/yt-dlp> |
 | FFmpeg  | Fusion audio/vidéo, conversion MP3/HAP | GPL/LGPL   | <https://ffmpeg.org> |
-| Deno    | Mini serveur local                     | MIT        | <https://deno.com> |
 
 ---
 

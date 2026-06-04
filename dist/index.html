@@ -393,20 +393,45 @@
     // Génération initiale au chargement (pour appliquer la valeur FFmpeg par défaut)
     document.addEventListener('DOMContentLoaded', generateCommand);
 
+    function flashCopied() {
+        const btn = document.querySelector('.copy-btn');
+        const original = btn.innerText;
+        btn.innerText = "✅ Commande copiée !";
+        btn.style.background = "linear-gradient(135deg, #34d399, #059669)";
+        setTimeout(() => {
+            btn.innerText = original;
+            btn.style.background = "";
+        }, 2000);
+    }
+
+    // Copie via une zone de texte temporaire + execCommand. Cette méthode
+    // fonctionne même en ouvrant le fichier en local (file://), sans serveur.
+    function legacyCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+    }
+
     function copyToClipboard() {
         const text = document.getElementById('commandOutput').innerText;
-        if (text.startsWith("Veuillez")) return;
+        if (text.startsWith("Veuillez") || text.startsWith("Aucune")) return;
 
-        navigator.clipboard.writeText(text).then(() => {
-            const btn = document.querySelector('.copy-btn');
-            const original = btn.innerText;
-            btn.innerText = "✅ Commande copiée !";
-            btn.style.background = "linear-gradient(135deg, #34d399, #059669)";
-            setTimeout(() => {
-                btn.innerText = original;
-                btn.style.background = "";
-            }, 2000);
-        });
+        // API moderne quand elle est disponible (contexte sécurisé : https/localhost),
+        // sinon repli sur execCommand qui marche aussi en double-clic (file://).
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(flashCopied, () => {
+                if (legacyCopy(text)) flashCopied();
+            });
+        } else if (legacyCopy(text)) {
+            flashCopied();
+        }
     }
 </script>
 
