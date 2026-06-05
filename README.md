@@ -14,7 +14,7 @@ Aucune ligne de commande à connaître : on colle ses liens, on choisit la quali
 - 🎛️ **Export VJ** — ré-encodage en codec **HAP** / **HAP Q** (`.mov`) lu nativement par Resolume Arena/Avenue et Alley.
 - 📚 **Playlists** — téléchargement complet avec sous-dossier par playlist.
 - 📁 **Rangement automatique** — les vidéos atterrissent dans un dossier `Téléchargements/` créé tout seul.
-- 🔌 **100 % portable** — yt-dlp et FFmpeg sont téléchargés dans un sous-dossier `bin/` ; rien n'est installé ailleurs sur le PC.
+- 🔌 **100 % portable** — yt-dlp, FFmpeg et Deno sont téléchargés dans un sous-dossier `bin/` ; rien n'est installé ailleurs sur le PC.
 
 ---
 
@@ -23,7 +23,7 @@ Aucune ligne de commande à connaître : on colle ses liens, on choisit la quali
 - **Windows** 10 / 11
 - Une **connexion internet** (uniquement pour la première installation)
 
-Aucune installation manuelle de yt-dlp ou FFmpeg : le script s'en charge.
+Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
 
 ---
 
@@ -37,7 +37,7 @@ Aucune installation manuelle de yt-dlp ou FFmpeg : le script s'en charge.
    ```
 2. Ouvrez le dossier `dist/`.
 3. Double-cliquez sur **`install.bat`**.
-   - Il télécharge automatiquement depuis les **sites officiels** : yt-dlp et FFmpeg, dans le sous-dossier `bin/`.
+   - Il télécharge automatiquement depuis les **sites officiels** : yt-dlp, FFmpeg et Deno, dans le sous-dossier `bin/`.
    - Si Windows SmartScreen apparaît : *Informations complémentaires* → *Exécuter quand même*.
 
 > Pour **mettre à jour** les outils plus tard, relancez simplement `install.bat`.
@@ -63,7 +63,7 @@ Aucune installation manuelle de yt-dlp ou FFmpeg : le script s'en charge.
 
 ```
 dist/
-├── install.bat     # Télécharge yt-dlp + FFmpeg dans bin/
+├── install.bat     # Télécharge yt-dlp + FFmpeg + Deno dans bin/
 ├── launch.bat      # Ouvre l'interface + un terminal prêt à l'emploi
 ├── index.html      # L'interface : génère la commande yt-dlp
 └── bin/            # Outils téléchargés (non versionnés)
@@ -72,6 +72,7 @@ dist/
 - `index.html` **ne télécharge rien lui-même** : c'est un générateur de commande. Il construit la ligne `yt-dlp …` adaptée à vos choix.
 - La page s'ouvre directement en local (`file://`) — **aucun serveur requis**. Le bouton « Copier » utilise l'API presse-papier moderne quand elle est disponible, avec un repli `execCommand` qui fonctionne en double-clic.
 - Le téléchargement réel est fait par `yt-dlp` + `FFmpeg` dans le terminal, sur **votre** machine.
+- **Deno** est présent dans `bin/` uniquement comme **moteur JavaScript** : yt-dlp l'utilise pour extraire les formats YouTube haute qualité (sans lui, YouTube est dégradé à ~1080p). Il **ne tourne pas en serveur** — yt-dlp le lance ponctuellement lui-même, car `launch.bat` ajoute `bin/` au PATH.
 
 ---
 
@@ -97,6 +98,7 @@ Cet outil télécharge et utilise des logiciels tiers gratuits (**non redistribu
 |---------|----------------------------------------|------------|------|
 | yt-dlp  | Téléchargeur vidéo                      | Unlicense  | <https://github.com/yt-dlp/yt-dlp> |
 | FFmpeg  | Fusion audio/vidéo, conversion MP3/HAP | GPL/LGPL   | <https://ffmpeg.org> |
+| Deno    | Moteur JavaScript pour l'extraction YouTube | MIT     | <https://deno.com> |
 
 ---
 

@@ -10,7 +10,9 @@ UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
 
 1. Double-cliquez sur  install.bat
    -> Il telecharge automatiquement les outils necessaires
-      (yt-dlp, FFmpeg) dans le dossier "bin".
+      (yt-dlp, FFmpeg, Deno) dans le dossier "bin".
+      Deno est le moteur JavaScript requis par YouTube pour
+      recuperer les formats haute qualite (4K).
    -> Une connexion internet est requise.
    -> Si Windows SmartScreen apparait : "Informations complementaires"
       puis "Executer quand meme".
@@ -49,6 +51,7 @@ UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
 Cet outil telecharge et utilise des logiciels tiers gratuits :
 - yt-dlp  : https://github.com/yt-dlp/yt-dlp        (Unlicense)
 - FFmpeg  : https://ffmpeg.org                      (GPL/LGPL)
+- Deno    : https://deno.com                        (MIT)
 
 Ces logiciels ne sont PAS redistribues ici : ils sont telecharges
 par install.bat depuis leurs sites officiels.
