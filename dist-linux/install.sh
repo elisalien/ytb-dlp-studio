@@ -7,7 +7,7 @@ trap 'echo ""; echo " *** ERREUR pendant le téléchargement ou l'\''extraction.
 ARCH=$(uname -m)
 
 echo "============================================================"
-echo "   yt-dlp 4K Pro - Installation des dépendances (Linux)"
+echo "   yt-dlp 4K - Installation des dépendances (Linux)"
 echo "============================================================"
 echo ""
 echo "       *      .             .          *       ."

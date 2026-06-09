@@ -1,4 +1,4 @@
-# 🎬 yt-dlp 4K Pro Generator
+# 🎬 yt-dlp 4K Generator
 
 > Interface graphique simple pour générer des commandes **yt-dlp** de téléchargement vidéo haute qualité (4K / 8K), avec fusion audio/vidéo automatique, conversion MP3 et export VJ (codec HAP pour Resolume / Alley).
 
