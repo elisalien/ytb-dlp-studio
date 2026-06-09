@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package Windows
+        run: |
+          cd dist
+          zip -r ../yt-dlp-4k-pro-windows.zip .
+          cd ..
+          echo "✔ Windows : yt-dlp-4k-pro-windows.zip"
+
+      - name: Package macOS
+        run: |
+          cd dist-mac
+          zip -r ../yt-dlp-4k-pro-mac.zip .
+          cd ..
+          echo "✔ macOS   : yt-dlp-4k-pro-mac.zip"
+
+      - name: Package Linux
+        run: |
+          cd dist-linux
+          zip -r ../yt-dlp-4k-pro-linux.zip .
+          cd ..
+          echo "✔ Linux   : yt-dlp-4k-pro-linux.zip"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "yt-dlp 4K Pro ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: |
+            yt-dlp-4k-pro-windows.zip
+            yt-dlp-4k-pro-mac.zip
+            yt-dlp-4k-pro-linux.zip
