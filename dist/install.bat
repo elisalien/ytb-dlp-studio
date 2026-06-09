@@ -4,7 +4,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ============================================================
-echo    yt-dlp 4K Pro - Installation des dependances
+echo    yt-dlp 4K - Installation des dependances
 echo ============================================================
 echo.
 echo        *      .             .          *       .

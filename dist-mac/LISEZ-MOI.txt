@@ -1,5 +1,5 @@
 ================================================================
-   yt-dlp 4K Pro Generator  -  Mode d'emploi (macOS)
+   yt-dlp 4K Generator  -  Mode d'emploi (macOS)
 ================================================================
 
 UN TÉLÉCHARGEUR VIDÉO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.

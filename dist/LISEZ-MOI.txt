@@ -1,5 +1,5 @@
 ================================================================
-   yt-dlp 4K Pro Generator  -  Mode d'emploi
+   yt-dlp 4K Generator  -  Mode d'emploi
 ================================================================
 
 UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.

@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 trap 'echo ""; echo " *** ERREUR pendant le téléchargement ou l'\''extraction. ***"; echo " Vérifiez votre connexion internet puis relancez : bash install.sh"; exit 1' ERR
 
 echo "============================================================"
-echo "   yt-dlp 4K Pro - Installation des dépendances (macOS)"
+echo "   yt-dlp 4K - Installation des dépendances (macOS)"
 echo "============================================================"
 echo ""
 echo "       *      .             .          *       ."
