@@ -1,0 +1,72 @@
+================================================================
+   yt-dlp 4K Pro Generator  -  Mode d'emploi (Linux)
+================================================================
+
+UN TÉLÉCHARGEUR VIDÉO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
+
+----------------------------------------------------------------
+ INSTALLATION (à faire une seule fois)
+----------------------------------------------------------------
+
+1. Ouvrez un Terminal
+
+2. Naviguez jusqu'au dossier dist-linux :
+      cd chemin/vers/dist-linux
+
+3. Rendez les scripts exécutables (une seule fois) :
+      chmod +x install.sh launch.sh
+
+4. Lancez l'installation :
+      bash install.sh
+   -> Il télécharge automatiquement les outils nécessaires
+      (yt-dlp, FFmpeg, Deno) dans le dossier "bin".
+      Deno est le moteur JavaScript requis par YouTube pour
+      récupérer les formats haute qualité (4K).
+   -> Une connexion internet est requise.
+   -> Compatible x86_64 et ARM64 (Raspberry Pi, etc.).
+
+----------------------------------------------------------------
+ UTILISATION
+----------------------------------------------------------------
+
+1. Dans le Terminal :
+      bash launch.sh
+   -> L'interface s'ouvre dans votre navigateur.
+   -> Une fenêtre Terminal s'ouvre aussi : c'est normal,
+      c'est là que les vidéos se téléchargent.
+
+2. Dans l'interface :
+   - Collez vos liens YouTube (un par ligne)
+   - Choisissez la qualité
+   - Cliquez sur "Copier la commande"
+
+3. Cliquez dans la fenêtre Terminal, collez (Ctrl+Shift+V),
+   puis appuyez sur Entrée.
+
+4. La vidéo est enregistrée dans ce dossier.
+
+----------------------------------------------------------------
+ NOTES
+----------------------------------------------------------------
+
+- FFmpeg est inclus : laissez le champ "FFmpeg" VIDE.
+- Pour mettre les outils à jour, relancez simplement install.sh.
+- Tout reste dans ce dossier, rien n'est installé ailleurs.
+- Émulateurs de terminal supportés : gnome-terminal, konsole,
+  xfce4-terminal, lxterminal, mate-terminal, tilix, xterm.
+
+----------------------------------------------------------------
+ CRÉDITS / LICENCES
+----------------------------------------------------------------
+
+Cet outil télécharge et utilise des logiciels tiers gratuits :
+- yt-dlp  : https://github.com/yt-dlp/yt-dlp        (Unlicense)
+- FFmpeg  : https://johnvansickle.com/ffmpeg         (GPL/LGPL)
+- Deno    : https://deno.com                         (MIT)
+
+Ces logiciels ne sont PAS redistribués ici : ils sont téléchargés
+par install.sh depuis leurs sites officiels.
+================================================================
+
+2026 - Elisalien
+pour Lucien
