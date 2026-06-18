@@ -37,19 +37,6 @@ UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
 4. La video est enregistree dans ce dossier.
 
 ----------------------------------------------------------------
- MONTER UN DOSSIER D'IMAGES EN VIDEO (onglet "Frames -> video")
-----------------------------------------------------------------
-
-1. Choisissez l'onglet "Frames -> video".
-2. Indiquez le dossier des images, le format (PNG, JPEG...),
-   le nommage, les images/seconde et le format de sortie
-   (MP4 compatibilite max, ProRes ou HAP pour le VJ).
-   - "Sequence" (0001, 0002...) marche sur Windows.
-3. Copiez la commande, collez-la dans le Terminal, Entree.
-4. La video (montage.mp4 par defaut) est creee DANS le dossier
-   des images.
-
-----------------------------------------------------------------
  NOTES
 ----------------------------------------------------------------
 

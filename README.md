@@ -1,22 +1,20 @@
 # 🎬 yt-dlp Studio
 
-> Interface graphique minimaliste pour générer des commandes **yt-dlp** (téléchargement vidéo haute qualité 4K / 8K, fusion audio/vidéo, MP3, export VJ HAP) **et** des commandes **FFmpeg** pour monter un dossier d'images (frames) en vidéo.
+> Interface graphique minimaliste pour générer des commandes **yt-dlp** : téléchargement vidéo haute qualité 4K / 8K, fusion audio/vidéo, MP3, export VJ HAP.
 
-Aucune ligne de commande à connaître : on colle ses liens (ou on choisit un dossier de frames), on sélectionne un profil, on copie la commande, on la colle dans le terminal fourni. Tout est portable et reste dans le dossier de l'outil.
+Aucune ligne de commande à connaître : on colle ses liens, on sélectionne un profil, on copie la commande, on la colle dans le terminal fourni. Tout est portable et reste dans le dossier de l'outil.
 
 ---
 
 ## ✨ Fonctionnalités
 
-- 🧭 **Deux modes** — un onglet **Télécharger** et un onglet **Frames → vidéo**, dans une interface unique.
 - 🛡️ **Compatibilité maximale (par défaut)** — profil **H.264 · AAC · MP4** sélectionné d'office : la vidéo se lit partout (mobiles, lecteurs anciens, logiciels de montage).
 - 📥 **Téléchargement multi-URLs** — une ou plusieurs vidéos d'un coup (une URL par ligne).
 - 🌟 **Qualité au choix** — Ultime (4K/8K sans limite), 4K (2160p), 2K (1440p), Full HD (1080p).
-- 🎞️ **Frames → vidéo** — fusionne un **dossier d'images** (PNG, JPEG, TIFF, BMP, EXR) en vidéo, avec choix du débit d'images (fps) et du format de sortie : **MP4 compatibilité maximale**, **ProRes 422 HQ** ou **HAP** (VJ).
 - 🎵 **Audio seul** — extraction MP3 en qualité maximale.
 - 🎛️ **Export VJ** — ré-encodage en codec **HAP** / **HAP Q** (`.mov`) lu nativement par Resolume Arena/Avenue et Alley.
 - 📚 **Playlists** — téléchargement complet avec sous-dossier par playlist.
-- 📁 **Rangement automatique** — les vidéos atterrissent dans `Téléchargements/` ; les montages dans le dossier des images.
+- 📁 **Rangement automatique** — les vidéos atterrissent dans `Téléchargements/`.
 - 🔌 **100 % portable** — yt-dlp, FFmpeg et Deno sont téléchargés dans un sous-dossier `bin/` ; rien n'est installé ailleurs sur le PC.
 
 ---
@@ -60,14 +58,6 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
 3. Cliquez dans la fenêtre « Terminal », faites un **clic droit** (= coller), puis **Entrée**.
 4. La vidéo est enregistrée dans `dist/Téléchargements/`.
 
-### 🎞️ Monter un dossier d'images en vidéo
-
-1. Dans l'interface, onglet **🎞️ Frames → vidéo**.
-2. Renseignez le **dossier des images**, le **format** (PNG, JPEG…), le **nommage**, les **images/seconde** et le **format de sortie**.
-   - **Séquence** (`0001`, `0002`, …) fonctionne sur **toutes les plateformes** ; **Noms libres** (glob) est réservé à **macOS / Linux**.
-3. Copiez la commande, collez-la dans le Terminal, puis **Entrée**.
-4. La vidéo (`montage.mp4` par défaut) est créée **dans le dossier des images**.
-
 ---
 
 ## 🛠️ Comment ça marche
@@ -80,7 +70,7 @@ dist/
 └── bin/            # Outils téléchargés (non versionnés)
 ```
 
-- `index.html` **ne télécharge rien lui-même** : c'est un générateur de commande. Il construit la ligne `yt-dlp …` (téléchargement) ou `ffmpeg …` (montage de frames) adaptée à vos choix.
+- `index.html` **ne télécharge rien lui-même** : c'est un générateur de commande. Il construit la ligne `yt-dlp …` adaptée à vos choix.
 - La page s'ouvre directement en local (`file://`) — **aucun serveur requis**. Le bouton « Copier » utilise l'API presse-papier moderne quand elle est disponible, avec un repli `execCommand` qui fonctionne en double-clic.
 - Le téléchargement réel est fait par `yt-dlp` + `FFmpeg` dans le terminal, sur **votre** machine.
 - **Deno** est présent dans `bin/` uniquement comme **moteur JavaScript** : yt-dlp l'utilise pour extraire les formats YouTube haute qualité (sans lui, YouTube est dégradé à ~1080p). Il **ne tourne pas en serveur** — yt-dlp le lance ponctuellement lui-même, car `launch.bat` ajoute `bin/` au PATH.
@@ -92,9 +82,7 @@ dist/
 - **Aucun serveur, aucun port ouvert** — l'interface tourne en local (`file://`) ; rien n'écoute sur le réseau.
 - **Anti-injection shell renforcé** — la commande générée est destinée à être collée dans un terminal. À l'intérieur de guillemets doubles, un shell Unix (bash/zsh) interprète **encore** `$(…)`, les backticks `` ` `` et `$VAR` : retirer seulement les guillemets **ne suffit pas**. L'interface neutralise donc, selon le contexte, **tous** les métacaractères réellement dangereux :
   - **URLs** : validation `http(s)` stricte, puis suppression des espaces, guillemets (`"` `'`), backtick, `$`, `\` et `< > |` — aucun n'est légitime dans une URL bien formée, donc les vrais liens ne sont pas altérés (les `&`, `?`, `%` des URL YouTube sont conservés).
-  - **Chemins** (dossier de frames, FFmpeg) : suppression de `$`, backtick, guillemets et d'un `\` final (qui pourrait échapper le guillemet fermant).
-  - **Nom de sortie** : liste blanche stricte (`A-Z a-z 0-9 . _ -`).
-  - **fps** : entier borné (1–240).
+  - **Chemin FFmpeg** : suppression de `$`, backtick, guillemets et d'un `\` final (qui pourrait échapper le guillemet fermant).
   - Aucune donnée utilisateur n'est insérée en HTML via `innerHTML` (uniquement `textContent`) → pas de XSS.
 - **Téléchargements officiels en HTTPS** — `install.bat` force TLS 1.2 et récupère les binaires depuis les dépôts officiels uniquement.
 

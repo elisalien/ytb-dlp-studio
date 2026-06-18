@@ -90,29 +90,6 @@
         }
         .subtitle { color: var(--dim); font-size: 0.85rem; margin: 0 0 1.5rem; }
 
-        /* Segmented tab control */
-        .tabs {
-            display: flex; gap: 4px; padding: 4px;
-            background: var(--glass-2); border: 1px solid var(--border);
-            border-radius: 13px; margin-bottom: 1.5rem;
-        }
-        .tab {
-            flex: 1; padding: 10px 12px; border: none; background: transparent;
-            color: var(--dim); font-size: 0.86rem; font-weight: 600; font-family: inherit;
-            border-radius: 10px; cursor: pointer; transition: background 0.2s, color 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 7px;
-        }
-        .tab:hover { color: var(--text); }
-        .tab.active {
-            color: #fff;
-            background: linear-gradient(135deg, var(--accent), var(--accent-2));
-            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.28);
-        }
-
-        .panel { display: none; }
-        .panel.active { display: block; animation: fade 0.3s ease; }
-        @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-
         .group { margin-bottom: 1.1rem; }
         .row { display: flex; gap: 0.9rem; }
         .row > .group { flex: 1; margin-bottom: 1.1rem; }
@@ -202,15 +179,10 @@
 <div class="card">
     <div class="credit">made with <span class="heart">♥</span> by elisalien</div>
     <h1>🎬 yt-dlp Studio</h1>
-    <p class="subtitle">Téléchargez en haute qualité ou montez une séquence d'images en vidéo.</p>
-
-    <div class="tabs" role="tablist">
-        <button class="tab active" id="tab-dl" onclick="switchTab('dl')">⬇️ Télécharger</button>
-        <button class="tab" id="tab-frames" onclick="switchTab('frames')">🎞️ Frames → vidéo</button>
-    </div>
+    <p class="subtitle">Téléchargez vos vidéos en haute qualité (4K / 8K), MP3 ou HAP pour le VJ.</p>
 
     <!-- ============ DOWNLOAD ============ -->
-    <section class="panel active" id="panel-dl">
+    <section id="panel-dl">
         <div class="group">
             <label for="url">URLs des vidéos <span class="soft">(une par ligne)</span></label>
             <textarea id="url" rows="4" placeholder="https://www.youtube.com/watch?v=…&#10;https://vimeo.com/…" oninput="generate()"></textarea>
@@ -244,55 +216,6 @@
                 <input type="checkbox" id="playlist" onchange="generate()">
                 <span>📚 Télécharger la playlist entière</span>
             </label>
-        </div>
-    </section>
-
-    <!-- ============ FRAMES → VIDEO ============ -->
-    <section class="panel" id="panel-frames">
-        <div class="group">
-            <label for="framesDir">Dossier des images <span class="soft">(glissez le dossier pour copier son chemin)</span></label>
-            <input type="text" id="framesDir" placeholder="Ex : C:\Frames\rendu   ou   /home/vous/frames" oninput="generate()">
-        </div>
-
-        <div class="row">
-            <div class="group">
-                <label for="framesExt">Format des images</label>
-                <select id="framesExt" onchange="generate()">
-                    <option value="png">PNG</option>
-                    <option value="jpg">JPEG</option>
-                    <option value="tif">TIFF</option>
-                    <option value="bmp">BMP</option>
-                    <option value="exr">EXR</option>
-                </select>
-            </div>
-            <div class="group">
-                <label for="framesNaming">Nommage des fichiers</label>
-                <select id="framesNaming" onchange="generate()">
-                    <option value="seq">Séquence 0001, 0002…</option>
-                    <option value="glob">Noms libres (Mac/Linux)</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="group">
-                <label for="fps">Images / seconde</label>
-                <input type="number" id="fps" value="30" min="1" max="240" oninput="generate()">
-            </div>
-            <div class="group">
-                <label for="outName">Nom de la vidéo</label>
-                <input type="text" id="outName" value="montage" oninput="generate()">
-            </div>
-        </div>
-
-        <div class="group">
-            <label for="framesPreset">Format de sortie</label>
-            <select id="framesPreset" onchange="generate()">
-                <option value="maxcompat">🛡️ Compatibilité maximale — H.264 · MP4 (lit partout)</option>
-                <option value="prores">🎬 Qualité — ProRes 422 HQ (.mov)</option>
-                <option value="hap">🎛️ VJ Resolume — HAP (.mov)</option>
-            </select>
-            <div class="hint" id="framesHint"></div>
         </div>
     </section>
 
@@ -344,32 +267,7 @@
         return s.replace(/["'`$\r\n\t]/g, "").replace(/\\+$/, "").trim();
     }
 
-    // Nom de sortie : liste blanche stricte (pas de séparateur, pas de métacaractère).
-    function cleanName(s) {
-        return s.replace(/[^A-Za-z0-9 ._-]/g, "").trim();
-    }
-
-    // Entier borné.
-    function cleanInt(v, def, min, max) {
-        const n = parseInt(v, 10);
-        if (!Number.isFinite(n)) return def;
-        return Math.min(max, Math.max(min, n));
-    }
-
-    let currentTab = "dl";
     let lastCommand = "";
-
-    function switchTab(tab) {
-        currentTab = tab;
-        document.getElementById("tab-dl").classList.toggle("active", tab === "dl");
-        document.getElementById("tab-frames").classList.toggle("active", tab === "frames");
-        document.getElementById("panel-dl").classList.toggle("active", tab === "dl");
-        document.getElementById("panel-frames").classList.toggle("active", tab === "frames");
-        document.getElementById("infoText").textContent = (tab === "frames")
-            ? "Le fichier vidéo sera créé dans le dossier des images. Collez la commande dans le Terminal puis Entrée."
-            : "Cliquez dans la fenêtre Terminal, collez (clic droit ou Ctrl/Cmd+V), puis Entrée.";
-        generate();
-    }
 
     const QUALITY_HINTS = {
         maxcompat: "Sélectionne le flux H.264 + AAC le plus universel (≤ 1080p). Idéal montage, mobile, lecteurs anciens.",
@@ -380,11 +278,6 @@
         hap: "Ré-encode en codec HAP (.mov), lu nativement par Resolume / Alley.",
         hapq: "HAP Q : qualité maximale (~2× plus lourd). Pour rendus VJ exigeants.",
         mp3: "Extrait uniquement l'audio en MP3, qualité VBR maximale."
-    };
-    const FRAMES_HINTS = {
-        maxcompat: "H.264 yuv420p + faststart : la vidéo se lit partout (web, mobile, montage).",
-        prores: "ProRes 422 HQ : qualité d'édition élevée, fichiers volumineux (.mov).",
-        hap: "HAP : lecture GPU instantanée dans Resolume / Alley (.mov)."
     };
 
     function setOutput(text, isPlaceholder) {
@@ -400,18 +293,9 @@
         const p = cleanPath(document.getElementById("ffmpeg").value);
         return p ? ` --ffmpeg-location "${p}"` : "";
     }
-    function ffmpegBinary() {
-        const p = cleanPath(document.getElementById("ffmpeg").value);
-        return p ? `"${p}"` : "ffmpeg";
-    }
-
-    function generate() {
-        if (currentTab === "dl") generateDownload();
-        else generateFrames();
-    }
 
     /* ----------------------------- DOWNLOAD ----------------------------- */
-    function generateDownload() {
+    function generate() {
         const quality = document.getElementById("quality").value;
         document.getElementById("qualityHint").textContent = QUALITY_HINTS[quality] || "";
 
@@ -464,55 +348,6 @@
 
         urls.forEach(u => { cmd += ` "${u}"`; });
         setOutput(cmd, false);
-    }
-
-    /* -------------------------- FRAMES → VIDEO -------------------------- */
-    function generateFrames() {
-        const preset = document.getElementById("framesPreset").value;
-        document.getElementById("framesHint").textContent = FRAMES_HINTS[preset] || "";
-
-        const dir = cleanPath(document.getElementById("framesDir").value);
-        const ext = document.getElementById("framesExt").value;      // liste fixe, sûr
-        const naming = document.getElementById("framesNaming").value; // liste fixe, sûr
-        const fps = cleanInt(document.getElementById("fps").value, 30, 1, 240);
-        let name = cleanName(document.getElementById("outName").value) || "montage";
-
-        if (!dir) {
-            setOutput("Indiquez le dossier contenant vos images…", true);
-            return;
-        }
-
-        // Construction de l'entrée. Le dossier est toujours suivi du motif, donc il
-        // ne touche jamais le guillemet fermant (pas d'échappement possible).
-        let input, globFlag = "";
-        if (naming === "glob") {
-            globFlag = " -pattern_type glob";
-            input = `${dir}/*.${ext}`;
-        } else {
-            input = `${dir}/%04d.${ext}`;
-        }
-
-        let outExt, codecArgs;
-        if (preset === "prores") {
-            outExt = "mov";
-            codecArgs = `-c:v prores_ks -profile:v 3 -pix_fmt yuv422p10le`;
-        } else if (preset === "hap") {
-            outExt = "mov";
-            codecArgs = `-c:v hap -format hap`;
-        } else { // maxcompat
-            outExt = "mp4";
-            codecArgs = `-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart`;
-        }
-
-        const bin = ffmpegBinary();
-        const cmd = `${bin} -framerate ${fps}${globFlag} -i "${input}" ${codecArgs} "${dir}/${name}.${outExt}"`;
-
-        setOutput(cmd, false);
-
-        if (naming === "glob") {
-            document.getElementById("framesHint").textContent =
-                (FRAMES_HINTS[preset] || "") + "  ⚠️ Le mode « noms libres » (glob) ne fonctionne pas sous Windows : utilisez plutôt « Séquence ».";
-        }
     }
 
     /* ------------------------------ COPY ------------------------------ */
