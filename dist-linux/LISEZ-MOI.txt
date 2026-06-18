@@ -14,7 +14,7 @@ UN TÉLÉCHARGEUR VIDÉO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
       cd chemin/vers/dist-linux
 
 3. Rendez les scripts exécutables (une seule fois) :
-      chmod +x install.sh launch.sh
+      chmod +x install.sh launch.sh update.sh
 
 4. Lancez l'installation :
       bash install.sh
@@ -46,11 +46,24 @@ UN TÉLÉCHARGEUR VIDÉO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
 4. La vidéo est enregistrée dans ce dossier.
 
 ----------------------------------------------------------------
+ MISE À JOUR DES OUTILS
+----------------------------------------------------------------
+
+Dans le Terminal :  bash update.sh
+Le script vérifie d'abord si des mises à jour existent et ne
+télécharge que le nécessaire :
+ - yt-dlp : auto-mise à jour (l'outil à actualiser le plus souvent,
+            car YouTube change souvent).
+ - Deno   : auto-mise à jour.
+ - FFmpeg : re-téléchargé UNIQUEMENT si une version plus récente existe.
+
+----------------------------------------------------------------
  NOTES
 ----------------------------------------------------------------
 
 - FFmpeg est inclus : laissez le champ "FFmpeg" VIDE.
-- Pour mettre les outils à jour, relancez simplement install.sh.
+- Pour TOUT re-télécharger de zéro, relancez install.sh ;
+  pour ne mettre à jour que le nécessaire, lancez update.sh.
 - Tout reste dans ce dossier, rien n'est installé ailleurs.
 - Émulateurs de terminal supportés : gnome-terminal, konsole,
   xfce4-terminal, lxterminal, mate-terminal, tilix, xterm.

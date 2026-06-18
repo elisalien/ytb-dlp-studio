@@ -37,7 +37,7 @@ echo ""
 mkdir -p bin
 
 echo "[1/3] Téléchargement de yt-dlp..."
-curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" -o bin/yt-dlp
+curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux" -o bin/yt-dlp
 chmod +x bin/yt-dlp
 echo "      OK"
 echo ""
@@ -48,11 +48,13 @@ if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
 else
     FFMPEG_URL="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
 fi
-curl -fL "$FFMPEG_URL" -o ffmpeg.tar.xz
+curl -fL --proto '=https' --tlsv1.2 "$FFMPEG_URL" -o ffmpeg.tar.xz
 mkdir -p ffmpeg_tmp
 tar -xf ffmpeg.tar.xz -C ffmpeg_tmp
-find ffmpeg_tmp -name "ffmpeg"  -type f | head -1 | xargs -I{} cp {} bin/ffmpeg
-find ffmpeg_tmp -name "ffprobe" -type f | head -1 | xargs -I{} cp {} bin/ffprobe
+FF=$(find ffmpeg_tmp -name "ffmpeg"  -type f -print -quit)
+FP=$(find ffmpeg_tmp -name "ffprobe" -type f -print -quit)
+[ -n "$FF" ] && cp "$FF" bin/ffmpeg
+[ -n "$FP" ] && cp "$FP" bin/ffprobe
 chmod +x bin/ffmpeg bin/ffprobe
 rm -rf ffmpeg.tar.xz ffmpeg_tmp
 echo "      OK"
@@ -64,7 +66,7 @@ if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
 else
     DENO_URL="https://github.com/denoland/deno/releases/latest/download/deno-x86_64-unknown-linux-gnu.zip"
 fi
-curl -fsSL "$DENO_URL" -o deno.zip
+curl -fsSL --proto '=https' --tlsv1.2 "$DENO_URL" -o deno.zip
 unzip -oq deno.zip -d bin
 chmod +x bin/deno
 rm -f deno.zip

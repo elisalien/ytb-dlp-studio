@@ -41,7 +41,18 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
    - Il télécharge automatiquement depuis les **sites officiels** : yt-dlp, FFmpeg et Deno, dans le sous-dossier `bin/`.
    - Si Windows SmartScreen apparaît : *Informations complémentaires* → *Exécuter quand même*.
 
-> Pour **mettre à jour** les outils plus tard, relancez simplement `install.bat`.
+---
+
+## 🔄 Mise à jour des outils
+
+Lancez **`update.bat`** (Windows) ou **`bash update.sh`** (macOS / Linux) quand vous le souhaitez.
+Le script **vérifie d'abord si des mises à jour sont disponibles** et ne télécharge que le nécessaire :
+
+- **yt-dlp** — auto-mise à jour native (`yt-dlp --update`). C'est l'outil à actualiser le plus souvent : YouTube change régulièrement et casse les anciennes versions.
+- **Deno** — auto-mise à jour native (`deno upgrade`).
+- **FFmpeg** — la version installée est comparée à la dernière version officielle ; le re-téléchargement n'a lieu **que si une version plus récente existe**.
+
+> `install.bat` / `install.sh` (re)téléchargent tout de zéro ; `update.bat` / `update.sh` ne touchent qu'à ce qui est périmé.
 
 ---
 
@@ -65,10 +76,13 @@ Aucune installation manuelle de yt-dlp, FFmpeg ou Deno : le script s'en charge.
 ```
 dist/
 ├── install.bat     # Télécharge yt-dlp + FFmpeg + Deno dans bin/
+├── update.bat      # Vérifie et met à jour les outils (seulement si besoin)
 ├── launch.bat      # Ouvre l'interface + un terminal prêt à l'emploi
 ├── index.html      # L'interface : génère la commande yt-dlp
 └── bin/            # Outils téléchargés (non versionnés)
 ```
+
+*(macOS / Linux : mêmes fichiers en `.sh` dans `dist-mac/` et `dist-linux/`.)*
 
 - `index.html` **ne télécharge rien lui-même** : c'est un générateur de commande. Il construit la ligne `yt-dlp …` adaptée à vos choix.
 - La page s'ouvre directement en local (`file://`) — **aucun serveur requis**. Le bouton « Copier » utilise l'API presse-papier moderne quand elle est disponible, avec un repli `execCommand` qui fonctionne en double-clic.
@@ -84,7 +98,8 @@ dist/
   - **URLs** : validation `http(s)` stricte, puis suppression des espaces, guillemets (`"` `'`), backtick, `$`, `\` et `< > |` — aucun n'est légitime dans une URL bien formée, donc les vrais liens ne sont pas altérés (les `&`, `?`, `%` des URL YouTube sont conservés).
   - **Chemin FFmpeg** : suppression de `$`, backtick, guillemets et d'un `\` final (qui pourrait échapper le guillemet fermant).
   - Aucune donnée utilisateur n'est insérée en HTML via `innerHTML` (uniquement `textContent`) → pas de XSS.
-- **Téléchargements officiels en HTTPS** — `install.bat` force TLS 1.2 et récupère les binaires depuis les dépôts officiels uniquement.
+- **Téléchargements officiels en HTTPS strict** — les binaires proviennent uniquement des dépôts/sites officiels. Windows force TLS 1.2 ; macOS / Linux forcent `--proto '=https' --tlsv1.2` sur chaque `curl`, ce qui **interdit toute redirection vers du HTTP non chiffré** (pas de downgrade possible).
+- **Mises à jour vérifiées** — `update` s'appuie sur les mécanismes signés de yt-dlp (`--update`) et Deno (`upgrade`), et ne re-télécharge FFmpeg que si la version distante diffère.
 
 ---
 

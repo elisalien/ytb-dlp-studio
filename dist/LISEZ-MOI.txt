@@ -37,11 +37,24 @@ UN TELECHARGEUR VIDEO 4K SIMPLE, AVEC UNE INTERFACE GRAPHIQUE.
 4. La video est enregistree dans ce dossier.
 
 ----------------------------------------------------------------
+ MISE A JOUR DES OUTILS
+----------------------------------------------------------------
+
+Double-cliquez sur  update.bat  quand vous le souhaitez.
+Le script verifie d'abord si des mises a jour existent et ne
+telecharge que le necessaire :
+ - yt-dlp : auto-mise a jour (l'outil a actualiser le plus souvent,
+            car YouTube change souvent).
+ - Deno   : auto-mise a jour.
+ - FFmpeg : re-telecharge UNIQUEMENT si une version plus recente existe.
+
+----------------------------------------------------------------
  NOTES
 ----------------------------------------------------------------
 
 - FFmpeg est inclus : laissez le champ "FFmpeg" VIDE dans l'interface.
-- Pour mettre les outils a jour, relancez simplement install.bat.
+- Pour TOUT re-telecharger de zero, relancez install.bat ;
+  pour ne mettre a jour que le necessaire, lancez update.bat.
 - Tout reste dans ce dossier, rien n'est installe ailleurs sur le PC.
 
 ----------------------------------------------------------------

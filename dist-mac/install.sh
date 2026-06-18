@@ -34,20 +34,20 @@ echo ""
 mkdir -p bin
 
 echo "[1/3] Téléchargement de yt-dlp..."
-curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos" -o bin/yt-dlp
+curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos" -o bin/yt-dlp
 chmod +x bin/yt-dlp
 echo "      OK"
 echo ""
 
 echo "[2/3] Téléchargement de FFmpeg (peut prendre une minute)..."
-curl -fL "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip" -o ffmpeg.zip
+curl -fL --proto '=https' --tlsv1.2 "https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip" -o ffmpeg.zip
 unzip -oq ffmpeg.zip -d ffmpeg_tmp
 cp ffmpeg_tmp/ffmpeg bin/ffmpeg
 chmod +x bin/ffmpeg
 rm -rf ffmpeg.zip ffmpeg_tmp
 
 echo "      Téléchargement de ffprobe..."
-curl -fL "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o ffprobe.zip
+curl -fL --proto '=https' --tlsv1.2 "https://evermeet.cx/ffmpeg/getrelease/ffprobe/zip" -o ffprobe.zip
 unzip -oq ffprobe.zip -d ffprobe_tmp
 cp ffprobe_tmp/ffprobe bin/ffprobe
 chmod +x bin/ffprobe
@@ -62,7 +62,7 @@ if [ "$ARCH" = "arm64" ]; then
 else
     DENO_URL="https://github.com/denoland/deno/releases/latest/download/deno-x86_64-apple-darwin.zip"
 fi
-curl -fsSL "$DENO_URL" -o deno.zip
+curl -fsSL --proto '=https' --tlsv1.2 "$DENO_URL" -o deno.zip
 unzip -oq deno.zip -d bin
 chmod +x bin/deno
 rm -f deno.zip
