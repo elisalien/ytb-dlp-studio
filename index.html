@@ -236,6 +236,34 @@
         .go:disabled { background: var(--raised); color: var(--faint); box-shadow: none; transform: none; cursor: not-allowed; }
         .go kbd { font: 400 11px var(--body); opacity: 0.8; }
 
+        /* ---------- Convertisseur : liste de fichiers et réglages ---------- */
+        .count-pill {
+            display: inline-block; min-width: 20px; margin-left: 8px; padding: 0 7px; border-radius: 999px;
+            background: var(--teal-soft); color: var(--teal-ink); font-size: 12px; font-weight: 700; text-align: center;
+        }
+        .count-pill:empty { display: none; }
+        .files { display: grid; gap: 6px; max-height: 300px; margin: 0 0 10px; padding: 0; overflow: auto; list-style: none; }
+        .files:empty { display: none; }
+        .file {
+            display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
+            padding: 8px 6px 8px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--ground);
+        }
+        .file.bad { border-color: color-mix(in srgb, var(--coral) 45%, transparent); }
+        .file-name { overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
+        .file-meta { overflow: hidden; font-size: 12px; color: var(--faint); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+        .file.bad .file-meta { color: var(--coral); }
+        .file-remove {
+            width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; cursor: pointer;
+            color: var(--faint); font-size: 18px; line-height: 1;
+        }
+        .file-remove:hover { background: var(--pink-soft); color: var(--pink-ink); }
+        .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px 14px; }
+        .setting { display: grid; gap: 5px; font-size: 12.5px; font-weight: 600; color: var(--dim); }
+        .setting .field { padding: 8px 12px; font-size: 13px; font-weight: 400; }
+        .setting select.field { padding-right: 32px; background-position: right 12px center; }
+        .plan li > span:first-child { max-width: 32ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .plan li.more { display: block; color: var(--faint); }
+
         /* ---------- File d'attente ---------- */
         .queue { position: sticky; top: 80px; display: flex; flex-direction: column; max-height: calc(100vh - 104px); }
         .queue-head { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
@@ -404,33 +432,103 @@
         <!-- ================= CONVERTIR ================= -->
         <div id="panelCv" role="tabpanel" aria-labelledby="tabCv" hidden>
             <div class="section">
-                <div class="eyebrow"><label for="cvInput">Fichier source</label></div>
+                <div class="eyebrow"><span>Fichiers<span class="count-pill" id="cvCount"></span></span><button class="link" type="button" id="cvClearBtn" hidden>Tout retirer</button></div>
+                <ul class="files" id="cvFiles" aria-live="polite"></ul>
                 <div class="row">
-                    <input class="field path" type="text" id="cvInput" spellcheck="false" placeholder="D:\Vidéos\clip.mov">
-                    <button class="btn" type="button" id="cvPickBtn">Choisir…</button>
+                    <input class="field path" type="text" id="cvInput" spellcheck="false" placeholder="Collez un chemin : D:\Vidéos\clip.mov" aria-label="Chemin du fichier à ajouter">
+                    <button class="btn" type="button" id="cvAddBtn">Ajouter</button>
+                    <button class="btn" type="button" id="cvPickBtn">Parcourir…</button>
                 </div>
-                <ul class="plan" id="cvPlan" aria-live="polite"></ul>
+                <p class="hint">Plusieurs fichiers : sélection multiple dans « Parcourir… », ou <b>Maj + clic droit › Copier en tant que chemin</b> dans l'Explorateur, puis collez ici. Un téléchargement terminé s'envoie aussi ici depuis la file.</p>
             </div>
 
             <div class="section">
-                <div class="eyebrow" id="cvPresetLabel">Préréglage</div>
+                <div class="eyebrow" id="cvPresetLabel">Format de sortie</div>
                 <div class="tiles" id="cvPresets" role="radiogroup" aria-labelledby="cvPresetLabel"></div>
                 <p class="hint" id="cvHint"></p>
             </div>
 
             <div class="section">
-                <div class="eyebrow" id="cvScaleLabel">Largeur maximale</div>
-                <div class="tiles" id="cvScales" role="radiogroup" aria-labelledby="cvScaleLabel"></div>
-                <p class="hint">Réduit seulement : une vidéo plus petite garde sa taille. Sans effet sur le MP3.</p>
-                <label class="toggle"><input type="checkbox" id="cvOverwrite"><span>Remplacer le fichier produit s'il existe déjà</span></label>
+                <div class="eyebrow">Réglages</div>
+                <div class="settings">
+                    <label class="setting" id="cvQualityWrap">Qualité
+                        <select class="field" id="cvQuality">
+                            <option value="high">Haute</option>
+                            <option value="balanced">Équilibrée</option>
+                            <option value="small">Légère</option>
+                        </select>
+                    </label>
+                    <label class="setting" data-visual>Largeur max
+                        <select class="field" id="cvScale">
+                            <option value="">Originale</option>
+                            <option value="3840">3840 px · 4K</option>
+                            <option value="2560">2560 px · 2K</option>
+                            <option value="1920">1920 px · 1080p</option>
+                            <option value="1280">1280 px · 720p</option>
+                            <option value="854">854 px · 480p</option>
+                            <option value="640">640 px</option>
+                            <option value="480">480 px</option>
+                        </select>
+                    </label>
+                    <label class="setting" data-visual>Images par seconde
+                        <select class="field" id="cvFps">
+                            <option value="">Originales</option>
+                            <option value="60">60</option>
+                            <option value="50">50</option>
+                            <option value="30">30</option>
+                            <option value="25">25</option>
+                            <option value="24">24</option>
+                            <option value="15">15</option>
+                            <option value="12">12</option>
+                        </select>
+                    </label>
+                    <label class="setting" data-visual>Rotation
+                        <select class="field" id="cvRotate">
+                            <option value="">Aucune</option>
+                            <option value="cw">90° horaire</option>
+                            <option value="ccw">90° anti-horaire</option>
+                            <option value="180">180°</option>
+                            <option value="hflip">Miroir horizontal</option>
+                        </select>
+                    </label>
+                    <label class="setting" id="cvAudioWrap">Son
+                        <select class="field" id="cvAudio">
+                            <option value="keep">Garder</option>
+                            <option value="norm">Normaliser le volume</option>
+                            <option value="mute">Supprimer</option>
+                        </select>
+                    </label>
+                    <label class="setting">Début
+                        <input class="field" type="text" id="cvStart" inputmode="decimal" spellcheck="false" placeholder="0:00">
+                    </label>
+                    <label class="setting">Fin
+                        <input class="field" type="text" id="cvEnd" inputmode="decimal" spellcheck="false" placeholder="Jusqu'au bout">
+                    </label>
+                </div>
+                <p class="hint">Début et fin : <b>90</b>, <b>1:30</b> ou <b>01:02:03</b>. La largeur ne fait que réduire. « Normaliser » donne un volume homogène (−14 LUFS).</p>
             </div>
 
             <div class="section">
-                <div class="eyebrow">Commande équivalente<button class="link" type="button" id="cvCopyBtn">Copier</button></div>
-                <pre class="cmd" id="cvOutput">—</pre>
+                <div class="eyebrow"><label for="cvOutDir">Dossier de sortie</label><button class="link" type="button" id="cvOutResetBtn">À côté des sources</button></div>
+                <div class="row">
+                    <input class="field path" type="text" id="cvOutDir" spellcheck="false" placeholder="Vide = à côté de chaque fichier source">
+                    <button class="btn" type="button" id="cvOutPickBtn">Choisir…</button>
+                </div>
+                <label class="toggle"><input type="checkbox" id="cvOverwrite"><span>Remplacer les fichiers produits s'ils existent déjà</span></label>
+                <ul class="plan" id="cvPlan" aria-live="polite"></ul>
             </div>
 
-            <div class="actionbar"><button class="go" id="cvGoBtn" type="button" disabled>Convertir <kbd>Ctrl + Entrée</kbd></button></div>
+            <details class="adv">
+                <summary>Commande équivalente</summary>
+                <div class="inner">
+                    <div>
+                        <div class="eyebrow"><span class="aside">Premier fichier de la liste</span><button class="link" type="button" id="cvCopyBtn">Copier</button></div>
+                        <pre class="cmd" id="cvOutput">—</pre>
+                    </div>
+                </div>
+            </details>
+
+            <div class="actionbar"><button class="go" id="cvGoBtn" type="button" disabled><span id="cvGoText">Convertir</span> <kbd>Ctrl + Entrée</kbd></button></div>
         </div>
     </section>
 
@@ -491,21 +589,44 @@
         mp3: "Extrait uniquement l'audio en MP3, qualité VBR maximale.",
         frames: "Télécharge en ≤ 1080p puis extrait chaque image en PNG dans <destination>/<titre>/. Lourd : 3 min à 30 fps ≈ 5 400 images."
     };
+
+    // Formats du convertisseur (mêmes identifiants que $Presets dans server.ps1).
     const PRESETS = [
-        ["mp4compat", "MP4 compatible", "H.264 · AAC · CRF 20"],
-        ["mp4hq", "MP4 HQ", "H.264 · CRF 18 · 320k"],
-        ["hap", "HAP", ".mov · Resolume"],
-        ["hapq", "HAP Q", ".mov · qualité max"],
-        ["mp3", "MP3", "Audio · 320 kb/s"]
+        { label: "Vidéo", items: [
+            ["h264", "MP4 H.264", "Compatible partout"],
+            ["h265", "MP4 H.265", "2× plus léger"],
+            ["vp9", "WebM VP9", "Pour le web"],
+            ["prores", "ProRes 422", ".mov · montage"]] },
+        { label: "VJ", items: [
+            ["hap", "HAP", ".mov · Resolume"],
+            ["hapalpha", "HAP Alpha", "Avec transparence"],
+            ["hapq", "HAP Q", "Qualité max"]] },
+        { label: "Audio", items: [
+            ["mp3", "MP3", "Universel"],
+            ["aac", "AAC", ".m4a · léger"],
+            ["wav", "WAV", "Sans perte"],
+            ["flac", "FLAC", "Sans perte · compressé"]] },
+        { label: "Image", items: [
+            ["gif", "GIF animé", "Palette optimisée"],
+            ["png", "Images PNG", "Une par frame"]] }
     ];
-    const PRESET_HINTS = {
-        mp4compat: "Ré-encode en H.264 + AAC : lisible partout (VLC, TV, mobile, montage). Produit « nom-compatible.mp4 ».",
-        mp4hq: "Même compatibilité, qualité supérieure : plus lent et plus lourd. Produit « nom-hq.mp4 ».",
-        hap: "Codec HAP décodé par la carte graphique dans Resolume / Alley. Produit « nom-hap.mov ».",
-        hapq: "HAP Q : qualité maximale, environ deux fois plus lourd. Produit « nom-hapq.mov ».",
-        mp3: "Extrait l'audio en MP3 320 kb/s. Produit « nom.mp3 »."
+    // kind : réglages visibles ; q : le réglage Qualité a un effet.
+    const PRESET_INFO = {
+        h264: { kind: "video", q: true, hint: "H.264 + AAC : se lit partout (VLC, TV, mobile, montage). Produit « nom-h264.mp4 »." },
+        h265: { kind: "video", q: true, hint: "HEVC : même qualité pour environ deux fois moins de place, encodage plus lent. Produit « nom-h265.mp4 »." },
+        vp9: { kind: "video", q: true, hint: "VP9 + Opus pour le web. Encodage lent. Produit « nom.webm »." },
+        prores: { kind: "video", q: true, hint: "ProRes pour le montage (Premiere, DaVinci, Final Cut). Haute = 422 HQ, Légère = 422 LT. Fichiers lourds. Produit « nom-prores.mov »." },
+        hap: { kind: "video", q: false, hint: "HAP décodé par la carte graphique dans Resolume / Alley. Produit « nom-hap.mov »." },
+        hapalpha: { kind: "video", q: false, hint: "HAP avec couche alpha : garde la transparence d'une source ProRes 4444, PNG ou MOV. Produit « nom-hapa.mov »." },
+        hapq: { kind: "video", q: false, hint: "HAP Q : qualité maximale, environ deux fois plus lourd que HAP. Produit « nom-hapq.mov »." },
+        mp3: { kind: "audio", q: true, hint: "MP3 VBR : Haute ≈ 245 kb/s, Légère ≈ 130 kb/s. Produit « nom.mp3 »." },
+        aac: { kind: "audio", q: true, hint: "AAC en .m4a : meilleur que le MP3 à débit égal. Produit « nom.m4a »." },
+        wav: { kind: "audio", q: false, hint: "WAV 16 bits sans perte, pour le montage ou les samplers. Produit « nom.wav »." },
+        flac: { kind: "audio", q: false, hint: "FLAC sans perte, environ deux fois plus léger que le WAV. Produit « nom.flac »." },
+        gif: { kind: "image", q: true, hint: "GIF en boucle avec palette calculée. Par défaut 15 images/s et 640 px de large. Produit « nom.gif »." },
+        png: { kind: "image", q: false, hint: "Une image PNG par frame dans le dossier « nom-frames ». Très lourd sur les longues vidéos." }
     };
-    const SCALES = [["", "Originale", "Sans redimension"], ["3840", "3840", "4K"], ["2560", "2560", "2K"], ["1920", "1920", "1080p"], ["1280", "1280", "720p"]];
+
     const STATUS = { queued: "Attente", running: "En cours", done: "Terminé", partial: "Partiel", error: "Échec", canceled: "Annulé" };
     const KIND = { single: "Vidéo", batch: "Lot", playlist: "Playlist", convert: "Conversion" };
     const isActive = j => j.status === "running" || j.status === "queued";
@@ -515,6 +636,8 @@
     let defaultDest = "";
     let rev = null;          // révision de la file connue ; null = recharger tout
     let jobs = [];
+    let cvFiles = [];        // chemins à convertir
+    const mediaInfo = new Map();
 
     /* ------------------------------ utilitaires ------------------------------ */
     function store(key, value) {
@@ -572,14 +695,16 @@
     }
 
     const num1 = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const baseName = path => String(path).split(/[\\/]/).pop();
 
-    function fmtSpeed(bps) {
-        if (!(bps > 0)) return "";
-        const units = ["o/s", "Ko/s", "Mo/s", "Go/s"];
+    function fmtBytes(n) {
+        if (!(n > 0)) return "";
+        const units = ["o", "Ko", "Mo", "Go", "To"];
         let i = 0;
-        while (bps >= 1024 && i < units.length - 1) { bps /= 1024; i++; }
-        return num1(bps) + " " + units[i];
+        while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+        return (i ? num1(n) : n) + " " + units[i];
     }
+    const fmtSpeed = bps => bps > 0 ? fmtBytes(bps) + "/s" : "";
 
     function fmtEta(s) {
         if (!(s >= 0)) return "";
@@ -626,7 +751,7 @@
         if (hit) hit.checked = true;
     }
 
-    /* ------------------------------ formulaire ------------------------------ */
+    /* ------------------------------ réglages ------------------------------ */
     const urlLines = () => $("url").value.split("\n").map(l => l.trim()).filter(Boolean);
 
     function options() {
@@ -639,7 +764,12 @@
             browser: $("cookiesBrowser").value,
             ffmpeg: $("ffmpeg").value.trim(),
             convPreset: radioValue("cvPreset"),
-            convScale: radioValue("cvScale"),
+            convQuality: $("cvQuality").value,
+            convScale: $("cvScale").value,
+            convFps: $("cvFps").value,
+            convRotate: $("cvRotate").value,
+            convAudio: $("cvAudio").value,
+            convOutDir: $("cvOutDir").value.trim(),
             convOverwrite: $("cvOverwrite").checked
         };
     }
@@ -652,8 +782,13 @@
         $("cookies").checked = s.cookies !== false;
         $("cookiesBrowser").value = s.browser || "firefox";
         $("ffmpeg").value = s.ffmpeg || "";
-        setRadio("cvPreset", s.convPreset || "mp4compat");
-        setRadio("cvScale", s.convScale || "");
+        setRadio("cvPreset", s.convPreset || "h264");
+        $("cvQuality").value = s.convQuality || "balanced";
+        $("cvScale").value = s.convScale || "";
+        $("cvFps").value = s.convFps || "";
+        $("cvRotate").value = s.convRotate || "";
+        $("cvAudio").value = s.convAudio || "keep";
+        $("cvOutDir").value = s.convOutDir || "";
         $("cvOverwrite").checked = !!s.convOverwrite;
         syncHints();
         refreshPlan();
@@ -666,8 +801,16 @@
 
     function syncHints() {
         setText($("qualityHint"), QUALITY_HINTS[radioValue("profile")] || "");
-        setText($("cvHint"), PRESET_HINTS[radioValue("cvPreset")] || "");
         $("batchNameWrap").hidden = !$("groupBatch").checked;
+
+        // Convertisseur : n'affiche que les réglages utiles au format choisi.
+        const info = PRESET_INFO[radioValue("cvPreset")] || PRESET_INFO.h264;
+        setText($("cvHint"), info.hint);
+        $("cvQualityWrap").hidden = !info.q;
+        for (const n of document.querySelectorAll("[data-visual]")) n.hidden = info.kind === "audio";
+        $("cvAudioWrap").hidden = info.kind === "image";
+        $("cvAudio").querySelector('option[value="mute"]').disabled = info.kind === "audio";
+        if (info.kind === "audio" && $("cvAudio").value === "mute") $("cvAudio").value = "keep";
     }
 
     function onDownloadChange(save) {
@@ -683,9 +826,10 @@
         refreshConvert();
     }
 
-    const planItem = (what, dest) => el("li", {}, el("span", { text: what }), el("span", { class: "to", text: "→" }), el("span", { class: "dest", text: dest }));
+    const planItem = (what, dest) => el("li", {}, el("span", { text: what, title: what }), el("span", { class: "to", text: "→" }), el("span", { class: "dest", text: dest }));
     const planBad = text => el("li", { class: "bad", text });
 
+    /* ------------------------------ télécharger ------------------------------ */
     // Aperçu calculé par le serveur. Le compteur écarte les réponses arrivées dans le désordre.
     let planSeq = 0;
     const refreshPlan = debounce(async () => {
@@ -718,33 +862,6 @@
         }
     }, 250);
 
-    const cvOptions = () => ({ ...options(), input: $("cvInput").value.trim() });
-
-    let cvSeq = 0;
-    const refreshConvert = debounce(async () => {
-        const seq = ++cvSeq;
-        if (!online || !$("cvInput").value.trim()) {
-            $("cvPlan").replaceChildren();
-            setText($("cvOutput"), "—");
-            $("cvGoBtn").disabled = true;
-            return;
-        }
-        try {
-            const r = await api("/api/convert", { ...cvOptions(), dryRun: true });
-            if (seq !== cvSeq) return;
-            const items = [];
-            if (r.output) items.push(planItem("Produit", r.output));
-            if (r.error) items.push(planBad(r.error));
-            $("cvPlan").replaceChildren(...items);
-            setText($("cvOutput"), r.command || "—");
-            $("cvGoBtn").disabled = !!r.error;
-        } catch (e) {
-            if (seq !== cvSeq) return;
-            $("cvPlan").replaceChildren(planBad(e.message));
-            $("cvGoBtn").disabled = true;
-        }
-    }, 250);
-
     function addUrls(text) {
         const found = String(text || "").split(/\s+/).filter(s => /^https?:\/\//i.test(s));
         const existing = new Set(urlLines());
@@ -758,18 +875,6 @@
         return found.length;
     }
 
-    function setTab(name) {
-        tab = name === "cv" ? "cv" : "dl";
-        for (const [id, panel, key] of [["tabDl", "panelDl", "dl"], ["tabCv", "panelCv", "cv"]]) {
-            const on = tab === key;
-            $(id).setAttribute("aria-selected", String(on));
-            $(id).tabIndex = on ? 0 : -1;
-            $(panel).hidden = !on;
-        }
-        store("ytdlp-tab", tab);
-    }
-
-    /* ------------------------------ actions ------------------------------ */
     async function startDownload() {
         const urls = urlLines();
         if (!urls.length || !online) return;
@@ -787,17 +892,146 @@
         }
     }
 
+    /* ------------------------------ convertir ------------------------------ */
+    const cvOptions = () => ({ ...options(), inputs: cvFiles, start: $("cvStart").value, end: $("cvEnd").value });
+
+    function describeMedia(info) {
+        if (!info) return "Analyse…";
+        if (info.error) return info.error;
+        const parts = [];
+        const v = info.video, a = info.audio;
+        if (v) parts.push(v.width ? `${v.width}×${v.height}` : "", v.fps ? `${String(v.fps).replace(".", ",")} i/s` : "", v.codec);
+        if (a) parts.push(a.codec + ({ 1: " mono", 2: " stéréo" }[a.channels] || (a.channels ? ` ${a.channels} canaux` : "")));
+        if (info.duration) parts.push(fmtEta(Math.round(info.duration)));
+        parts.push(fmtBytes(info.size));
+        return parts.filter(Boolean).join(" · ");
+    }
+
+    function renderFiles() {
+        $("cvFiles").replaceChildren(...cvFiles.map(path => {
+            const info = mediaInfo.get(path);
+            const name = baseName(path);
+            return el("li", { class: "file" + (info && info.error ? " bad" : "") },
+                el("div", {},
+                    el("div", { class: "file-name", text: name, title: path }),
+                    el("div", { class: "file-meta", text: describeMedia(info) })),
+                el("button", { class: "file-remove", type: "button", text: "×", title: "Retirer", "aria-label": "Retirer " + name,
+                    onclick: () => setFiles(cvFiles.filter(p => p !== path)) }));
+        }));
+        setText($("cvCount"), cvFiles.length ? String(cvFiles.length) : "");
+        $("cvClearBtn").hidden = !cvFiles.length;
+        setText($("cvGoText"), cvFiles.length > 1 ? `Convertir ${cvFiles.length} fichiers` : "Convertir");
+    }
+
+    function setFiles(list) {
+        cvFiles = list;
+        store("ytdlp-cvfiles", JSON.stringify(cvFiles));
+        renderFiles();
+        refreshConvert();
+    }
+
+    // Ajoute des chemins (sans doublon) et lance leur analyse. Renvoie le nombre ajouté.
+    function addFiles(paths) {
+        const fresh = [...new Set(paths.map(p => String(p).trim().replace(/^"+|"+$/g, "")).filter(Boolean))]
+            .filter(p => !cvFiles.includes(p));
+        if (fresh.length) {
+            setFiles(cvFiles.concat(fresh));
+            probe(fresh);
+        }
+        return fresh.length;
+    }
+
+    async function probe(paths) {
+        if (!online || !paths.length) return;
+        try {
+            const r = await api("/api/probe", { paths });
+            for (const info of r.items) mediaInfo.set(info.path, info);
+        } catch (e) {
+            for (const p of paths) mediaInfo.set(p, { error: e.message });
+        }
+        renderFiles();
+    }
+
+    // Champ chemin : accepte un chemin, ou plusieurs "entre guillemets" (Copier en tant que chemin).
+    function addFromInput() {
+        const value = $("cvInput").value;
+        if (!value.trim()) return;
+        const quoted = [...value.matchAll(/"([^"]+)"/g)].map(m => m[1]);
+        const added = addFiles(quoted.length ? quoted : [value]);
+        $("cvInput").value = "";
+        if (!added) toast("Ce fichier est déjà dans la liste.");
+    }
+
+    async function pickFiles() {
+        const button = $("cvPickBtn");
+        button.disabled = true;
+        toast("Choisissez les fichiers dans la fenêtre Windows (sélection multiple possible).");
+        try {
+            const r = await api("/api/pick-file", { start: cvFiles[cvFiles.length - 1] || "" });
+            const added = addFiles(r.paths || []);
+            if (added) toast(added > 1 ? `${added} fichiers ajoutés` : "Fichier ajouté");
+            else $("toast").classList.remove("show");
+        } catch (e) {
+            toast(e.message + " Collez le chemin dans le champ.", true);
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    let cvSeq = 0;
+    const refreshConvert = debounce(async () => {
+        const seq = ++cvSeq;
+        if (!online || !cvFiles.length) {
+            $("cvPlan").replaceChildren();
+            setText($("cvOutput"), "—");
+            $("cvGoBtn").disabled = true;
+            return;
+        }
+        try {
+            const r = await api("/api/convert", { ...cvOptions(), dryRun: true });
+            if (seq !== cvSeq) return;
+            const list = r.items || [];
+            const items = [];
+            if (r.error) items.push(planBad(r.error));
+            else {
+                for (const it of list.slice(0, 4)) {
+                    items.push(it.error ? planBad(`${baseName(it.input)} : ${it.error}`) : planItem(baseName(it.input), it.output));
+                }
+                if (list.length > 4) items.push(el("li", { class: "more", text: `… et ${list.length - 4} autre${list.length > 5 ? "s" : ""} fichier${list.length > 5 ? "s" : ""}` }));
+            }
+            $("cvPlan").replaceChildren(...items);
+            setText($("cvOutput"), r.command || "—");
+            $("cvGoBtn").disabled = !!r.error || list.some(i => i.error);
+        } catch (e) {
+            if (seq !== cvSeq) return;
+            $("cvPlan").replaceChildren(planBad(e.message));
+            $("cvGoBtn").disabled = true;
+        }
+    }, 300);
+
     async function startConvert() {
-        if (!online || !$("cvInput").value.trim()) return;
+        if (!online || !cvFiles.length) return;
         $("cvGoBtn").disabled = true;
         try {
-            await api("/api/convert", cvOptions());
-            toast("Conversion ajoutée à la file");
+            const r = await api("/api/convert", cvOptions());
+            toast(r.ids.length > 1 ? `${r.ids.length} conversions ajoutées à la file` : "Conversion ajoutée à la file");
             poll();
         } catch (e) {
             fail(e);
         }
         refreshConvert();
+    }
+
+    /* ------------------------------ commun ------------------------------ */
+    function setTab(name) {
+        tab = name === "cv" ? "cv" : "dl";
+        for (const [id, panel, key] of [["tabDl", "panelDl", "dl"], ["tabCv", "panelCv", "cv"]]) {
+            const on = tab === key;
+            $(id).setAttribute("aria-selected", String(on));
+            $(id).tabIndex = on ? 0 : -1;
+            $(panel).hidden = !on;
+        }
+        store("ytdlp-tab", tab);
     }
 
     async function pick(endpoint, input, button, after) {
@@ -843,6 +1077,8 @@
                     onclick: () => api("/api/cancel", { id }).then(poll).catch(fail) }),
                 el("button", { class: "btn small", type: "button", text: "Ouvrir le dossier",
                     onclick: () => openPath(v.openTarget) }),
+                v.toCv = el("button", { class: "btn small", type: "button", text: "Convertir ce fichier",
+                    onclick: () => { addFiles([v.job.lastFile]); setTab("cv"); toast("Fichier envoyé au convertisseur"); } }),
                 v.logBtn = el("button", { class: "btn small ghost", type: "button",
                     onclick: () => { v.logOpen = !v.logOpen; updateJob(v, v.job); } })),
             v.log = el("pre", { class: "job-log" }));
@@ -865,13 +1101,14 @@
         v.fill.style.width = indet ? "" : (j.status === "done" ? 100 : Math.max(0, j.percent || 0)) + "%";
 
         const meta = [KIND[j.kind]];
+        if (j.kind === "convert" && j.label) meta.push(j.label);
         if (j.itemCount > 1 || j.kind === "playlist") meta.push(`élément ${j.itemIndex || 0}${j.itemCount ? "/" + j.itemCount : ""}`);
         if (j.status === "running") {
             if (j.percent >= 0) meta.push(num1(j.percent) + " %");
             meta.push(fmtSpeed(j.speed));
             if (fmtEta(j.eta)) meta.push("reste " + fmtEta(j.eta));
         }
-        if (j.filesDone) meta.push(`${j.filesDone} fichier${j.filesDone > 1 ? "s" : ""}`);
+        if (j.filesDone && j.kind !== "convert") meta.push(`${j.filesDone} fichier${j.filesDone > 1 ? "s" : ""}`);
         setText(v.meta, meta.filter(Boolean).join("  ·  "));
 
         const err = !active && (j.status === "error" || j.status === "partial") ? j.lastError : "";
@@ -879,6 +1116,7 @@
         v.err.hidden = !err;
         v.cancel.hidden = !active;
         v.openTarget = j.kind !== "batch" && j.filesDone === 1 && j.lastFile ? j.lastFile : j.dir;
+        v.toCv.hidden = !(j.status === "done" && j.kind !== "convert" && j.filesDone === 1 && j.lastFile);
 
         const hasLog = j.log && j.log.length > 0;
         v.logBtn.hidden = !hasLog;
@@ -943,7 +1181,10 @@
                 renderJobs(jobs);
             }
             rev = st.rev;
-            if (first) handleIncomingUrl();
+            if (first) {
+                handleIncomingUrl();
+                probe(cvFiles.filter(p => !mediaInfo.has(p)));
+            }
             const active = jobs.some(isActive);
             $("updateBanner").hidden = !st.updating;
             if (st.updating) setStatus("busy", "Mise à jour des outils");
@@ -978,17 +1219,21 @@
         window.name = "ytdlpstudio"; // le favori réutilise cet onglet
 
         tiles($("profiles"), "profile", PROFILES);
-        tiles($("cvPresets"), "cvPreset", [{ items: PRESETS }]);
-        tiles($("cvScales"), "cvScale", [{ items: SCALES }]);
+        tiles($("cvPresets"), "cvPreset", PRESETS);
         setRadio("profile", "maxcompat");
-        setRadio("cvPreset", "mp4compat");
-        setRadio("cvScale", "");
+        setRadio("cvPreset", "h264");
 
         const draft = store("ytdlp-draft");
         if (draft) $("url").value = draft;
+        try {
+            cvFiles = JSON.parse(store("ytdlp-cvfiles") || "[]").filter(p => typeof p === "string");
+        } catch (e) {
+            cvFiles = [];
+        }
         $("autoStart").checked = store("ytdlp-autostart") === "1";
         setTab(store("ytdlp-tab"));
         syncHints();
+        renderFiles();
         renderJobs([]);
 
         if (!SERVED) {
@@ -1032,9 +1277,20 @@
         });
 
         // Convertir
-        $("cvInput").addEventListener("input", () => onConvertChange(false));
-        for (const id of ["cvPresets", "cvScales", "cvOverwrite"]) $(id).addEventListener("change", () => onConvertChange(true));
-        $("cvPickBtn").addEventListener("click", () => pick("/api/pick-file", $("cvInput"), $("cvPickBtn"), () => onConvertChange(false)));
+        $("cvInput").addEventListener("keydown", e => {
+            if (e.key === "Enter" && !(e.ctrlKey || e.metaKey)) { e.preventDefault(); addFromInput(); }
+        });
+        $("cvInput").addEventListener("paste", () => setTimeout(addFromInput, 0));
+        $("cvAddBtn").addEventListener("click", addFromInput);
+        $("cvPickBtn").addEventListener("click", pickFiles);
+        $("cvClearBtn").addEventListener("click", () => setFiles([]));
+        for (const id of ["cvPresets", "cvQuality", "cvScale", "cvFps", "cvRotate", "cvAudio", "cvOverwrite"]) {
+            $(id).addEventListener("change", () => onConvertChange(true));
+        }
+        $("cvOutDir").addEventListener("input", () => onConvertChange(true));
+        for (const id of ["cvStart", "cvEnd"]) $(id).addEventListener("input", () => onConvertChange(false));
+        $("cvOutPickBtn").addEventListener("click", () => pick("/api/pick-folder", $("cvOutDir"), $("cvOutPickBtn"), () => onConvertChange(true)));
+        $("cvOutResetBtn").addEventListener("click", () => { $("cvOutDir").value = ""; onConvertChange(true); });
         $("cvGoBtn").addEventListener("click", startConvert);
         $("cvCopyBtn").addEventListener("click", () => copyText($("cvOutput").textContent));
 

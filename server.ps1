@@ -158,6 +158,7 @@ namespace YtdlpStudio
             Job j = new Job();
             j.Exe = exe; j.Label = label; j.Kind = kind; j.Dir = dir; j.ItemCount = itemCount;
             j.Duration = duration; j.Output = output;
+            if (kind == "convert") j.Title = Path.GetFileName(output);
             j.CommandLine = JoinArgs(args);
             lock (gate) { j.Id = nextId++; jobs.Add(j); rev++; }
             signal.Set();
@@ -435,8 +436,20 @@ namespace YtdlpStudio
         void SetClientGuid(ref Guid guid);
         void ClearClientData();
         void SetFilter(IntPtr pFilter);
-        void GetResults(out IntPtr ppenum);
+        void GetResults(out IShellItemArray ppenum);
         void GetSelectedItems(out IntPtr ppsai);
+    }
+
+    [ComImport, Guid("B63EA76D-1F85-456F-A19C-48159EFA858B"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IShellItemArray
+    {
+        void BindToHandler(IntPtr pbc, ref Guid bhid, ref Guid riid, out IntPtr ppvOut);
+        void GetPropertyStore(int flags, ref Guid riid, out IntPtr ppv);
+        void GetPropertyDescriptionList(IntPtr keyType, ref Guid riid, out IntPtr ppv);
+        void GetAttributes(int attribFlags, uint sfgaoMask, out uint psfgaoAttribs);
+        void GetCount(out uint pdwNumItems);
+        void GetItemAt(uint dwIndex, out IShellItem ppsi);
+        void EnumItems(out IntPtr ppenumShellItems);
     }
 
     public static class ShellPicker
@@ -445,9 +458,10 @@ namespace YtdlpStudio
         static extern int SHCreateItemFromParsingName([MarshalAs(UnmanagedType.LPWStr)] string pszPath, IntPtr pbc,
             [In] ref Guid riid, [MarshalAs(UnmanagedType.Interface)] out IShellItem ppv);
 
-        public static string Pick(string title, string initial, bool folders)
+        // Dossier : un seul chemin. Fichiers : selection multiple. Annule : tableau vide.
+        public static string[] Pick(string title, string initial, bool folders)
         {
-            string result = null;
+            string[] result = new string[0];
             Exception error = null;
             Thread t = new Thread(delegate ()
             {
@@ -460,7 +474,14 @@ namespace YtdlpStudio
             return result;
         }
 
-        static string PickSta(string title, string initial, bool folders)
+        static string PathOf(IShellItem item)
+        {
+            string path;
+            item.GetDisplayName(0x80058000, out path); // SIGDN_FILESYSPATH
+            return path;
+        }
+
+        static string[] PickSta(string title, string initial, bool folders)
         {
             // Fenetre proprietaire invisible et "au premier plan" : sans elle, la boite
             // de dialogue s'ouvre souvent DERRIERE le navigateur.
@@ -480,8 +501,8 @@ namespace YtdlpStudio
             {
                 uint opts;
                 dlg.GetOptions(out opts);
-                // FORCEFILESYSTEM | PATHMUSTEXIST, puis PICKFOLDERS ou FILEMUSTEXIST
-                dlg.SetOptions(opts | 0x40 | 0x800 | (folders ? 0x20u : 0x1000u));
+                // FORCEFILESYSTEM | PATHMUSTEXIST, puis PICKFOLDERS ou FILEMUSTEXIST | ALLOWMULTISELECT
+                dlg.SetOptions(opts | 0x40 | 0x800 | (folders ? 0x20u : (0x1000u | 0x200u)));
                 dlg.SetTitle(title);
                 string start = null;
                 try { start = Directory.Exists(initial) ? initial : Path.GetDirectoryName(initial); } catch { }
@@ -491,12 +512,25 @@ namespace YtdlpStudio
                     Guid iid = typeof(IShellItem).GUID;
                     if (SHCreateItemFromParsingName(start, IntPtr.Zero, ref iid, out folder) == 0) dlg.SetFolder(folder);
                 }
-                if (dlg.Show(owner.Handle) != 0) return null; // annule
-                IShellItem item;
-                dlg.GetResult(out item);
-                string path;
-                item.GetDisplayName(0x80058000, out path); // SIGDN_FILESYSPATH
-                return path;
+                if (dlg.Show(owner.Handle) != 0) return new string[0]; // annule
+                if (folders)
+                {
+                    IShellItem item;
+                    dlg.GetResult(out item);
+                    return new string[] { PathOf(item) };
+                }
+                IShellItemArray items;
+                dlg.GetResults(out items);
+                uint count;
+                items.GetCount(out count);
+                string[] paths = new string[count];
+                for (uint i = 0; i < count; i++)
+                {
+                    IShellItem one;
+                    items.GetItemAt(i, out one);
+                    paths[i] = PathOf(one);
+                }
+                return paths;
             }
             finally
             {
@@ -519,15 +553,42 @@ if (-not ('YtdlpStudio.JobQueue' -as [type])) {
 $Profiles = @('maxcompat', 'best', '2160', '1440', '1080', 'hap', 'hapq', 'mp3', 'frames')
 $Browsers = @('firefox', 'chrome', 'edge', 'brave', 'chromium', 'opera', 'vivaldi')
 
-# Conversions locales (onglet Convertir) : suffixe du fichier produit + arguments ffmpeg.
+# Conversions locales (onglet Convertir).
+#   kind  : video | audio | image       suffix : ajoute au nom du fichier source
+#   args  : codec principal             q      : arguments par qualite (haute, equilibree, legere)
+#   audio : codec audio des videos      aq     : debit audio par qualite
+#   mult  : dimensions multiples de (H.264, H.265, VP9, ProRes : 2 ; HAP : 4)
+$Qualities = @('high', 'balanced', 'small')
+$AacQ = @('-b:a', '320k'), @('-b:a', '192k'), @('-b:a', '128k')
 $Presets = [ordered]@{
-    mp4compat = @{ suffix = '-compatible.mp4'; args = @('-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000') }
-    mp4hq     = @{ suffix = '-hq.mp4'; args = @('-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000') }
-    hap       = @{ suffix = '-hap.mov'; args = @('-c:v', 'hap', '-format', 'hap', '-chunks', '4', '-c:a', 'pcm_s16le') }
-    hapq      = @{ suffix = '-hapq.mov'; args = @('-c:v', 'hap', '-format', 'hap_q', '-chunks', '4', '-c:a', 'pcm_s16le') }
-    mp3       = @{ suffix = '.mp3'; args = @('-vn', '-c:a', 'libmp3lame', '-b:a', '320k'); audio = $true }
+    h264     = @{ kind = 'video'; suffix = '-h264.mp4'; mult = 2; audio = @('-c:a', 'aac'); aq = $AacQ
+                  args = @('-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-movflags', '+faststart')
+                  q = @('-preset', 'slow', '-crf', '18'), @('-preset', 'medium', '-crf', '21'), @('-preset', 'medium', '-crf', '26') }
+    h265     = @{ kind = 'video'; suffix = '-h265.mp4'; mult = 2; audio = @('-c:a', 'aac'); aq = $AacQ
+                  args = @('-c:v', 'libx265', '-pix_fmt', 'yuv420p', '-tag:v', 'hvc1', '-movflags', '+faststart', '-x265-params', 'log-level=error')
+                  q = @('-preset', 'slow', '-crf', '20'), @('-preset', 'medium', '-crf', '24'), @('-preset', 'medium', '-crf', '28') }
+    vp9      = @{ kind = 'video'; suffix = '.webm'; mult = 2; audio = @('-c:a', 'libopus'); aq = @('-b:a', '192k'), @('-b:a', '128k'), @('-b:a', '96k')
+                  args = @('-c:v', 'libvpx-vp9', '-pix_fmt', 'yuv420p', '-b:v', '0', '-row-mt', '1', '-deadline', 'good')
+                  q = @('-crf', '24', '-cpu-used', '1'), @('-crf', '31', '-cpu-used', '2'), @('-crf', '37', '-cpu-used', '4') }
+    prores   = @{ kind = 'video'; suffix = '-prores.mov'; mult = 2; audio = @('-c:a', 'pcm_s16le')
+                  args = @('-c:v', 'prores_ks', '-pix_fmt', 'yuv422p10le', '-vendor', 'apl0')
+                  q = @('-profile:v', '3'), @('-profile:v', '2'), @('-profile:v', '1') }
+    hap      = @{ kind = 'video'; suffix = '-hap.mov'; mult = 4; audio = @('-c:a', 'pcm_s16le'); args = @('-c:v', 'hap', '-format', 'hap', '-chunks', '4') }
+    hapalpha = @{ kind = 'video'; suffix = '-hapa.mov'; mult = 4; audio = @('-c:a', 'pcm_s16le'); args = @('-c:v', 'hap', '-format', 'hap_alpha', '-chunks', '4') }
+    hapq     = @{ kind = 'video'; suffix = '-hapq.mov'; mult = 4; audio = @('-c:a', 'pcm_s16le'); args = @('-c:v', 'hap', '-format', 'hap_q', '-chunks', '4') }
+    mp3      = @{ kind = 'audio'; suffix = '.mp3'; args = @('-c:a', 'libmp3lame'); q = @('-q:a', '0'), @('-q:a', '2'), @('-q:a', '5') }
+    aac      = @{ kind = 'audio'; suffix = '.m4a'; args = @('-c:a', 'aac', '-movflags', '+faststart'); q = @('-b:a', '256k'), @('-b:a', '192k'), @('-b:a', '128k') }
+    wav      = @{ kind = 'audio'; suffix = '.wav'; args = @('-c:a', 'pcm_s16le') }
+    flac     = @{ kind = 'audio'; suffix = '.flac'; args = @('-c:a', 'flac') }
+    gif      = @{ kind = 'image'; suffix = '.gif'; args = @(); colors = @(256, 160, 96) }
+    png      = @{ kind = 'image'; suffix = '-frames'; args = @() }
 }
-$Scales = @('', '3840', '2560', '1920', '1280')
+$Scales = @('', '3840', '2560', '1920', '1280', '854', '640', '480')
+$FrameRates = @('', '60', '50', '30', '25', '24', '15', '12')
+$Rotations = @('', 'cw', 'ccw', '180', 'hflip')
+$AudioModes = @('keep', 'norm', 'mute')
+$Inv = [Globalization.CultureInfo]::InvariantCulture
+$Float = [Globalization.NumberStyles]::Float
 
 function New-DefaultSettings {
     return [ordered]@{
@@ -538,8 +599,13 @@ function New-DefaultSettings {
         cookies       = $true
         browser       = 'firefox'
         ffmpeg        = ''
-        convPreset    = 'mp4compat'
+        convPreset    = 'h264'
+        convQuality   = 'balanced'
         convScale     = ''
+        convFps       = ''
+        convRotate    = ''
+        convAudio     = 'keep'
+        convOutDir    = ''
         convOverwrite = $false
     }
 }
@@ -569,13 +635,16 @@ function Merge-Options($settings, $body) {
     foreach ($k in $settings.Keys) { $s[$k] = $settings[$k] }
     if ($null -eq $body) { return $s }
     $p = $body.PSObject.Properties
-    foreach ($k in 'dest', 'ffmpeg') {
+    foreach ($k in 'dest', 'ffmpeg', 'convOutDir') {
         if ($p[$k]) { $s[$k] = ([string]$body.$k).Trim().Trim('"') }
     }
     foreach ($k in 'playlist', 'groupBatch', 'cookies', 'convOverwrite') {
         if ($p[$k]) { $s[$k] = [bool]$body.$k }
     }
-    $allowed = @{ profile = $Profiles; browser = $Browsers; convPreset = @($Presets.Keys); convScale = $Scales }
+    $allowed = @{
+        profile = $Profiles; browser = $Browsers; convPreset = @($Presets.Keys); convQuality = $Qualities
+        convScale = $Scales; convFps = $FrameRates; convRotate = $Rotations; convAudio = $AudioModes
+    }
     foreach ($k in $allowed.Keys) {
         if ($p[$k] -and ($allowed[$k] -contains [string]$body.$k)) { $s[$k] = [string]$body.$k }
     }
@@ -591,6 +660,18 @@ function Get-FfmpegExe($s) {
     if (-not $s.ffmpeg) { return (Join-Path $Bin 'ffmpeg.exe') }
     if ([IO.Directory]::Exists($s.ffmpeg)) { return (Join-Path $s.ffmpeg 'ffmpeg.exe') }
     return $s.ffmpeg
+}
+
+# L'encodeur HAP n'existe que dans la build "full" de FFmpeg (update.ps1 l'installe).
+# Seul un resultat positif est memorise : update.ps1 peut remplacer ffmpeg pendant que le serveur tourne.
+$HapSupport = @{}
+$NoHapMessage = 'Cette version de FFmpeg ne sait pas encoder en HAP : lancez update.bat (installe la build compl\u00e8te).'
+function Test-HapEncoder([string]$ffmpegExe) {
+    if ($HapSupport[$ffmpegExe]) { return $true }
+    $list = ''
+    try { $list = & $ffmpegExe -hide_banner -encoders | Out-String } catch {}
+    $HapSupport[$ffmpegExe] = $list -match '\bhap\b'
+    return $HapSupport[$ffmpegExe]
 }
 
 # ============================================================================
@@ -664,6 +745,7 @@ function New-DownloadPlan($s, $body, [bool]$forUi) {
     if (-not $s.dest) { $plan.error = 'Choisissez un dossier de destination.'; return $plan }
     if (-not (Test-FullPath $s.dest)) { $plan.error = U 'Le dossier doit \u00eatre un chemin complet (ex. D:\\Vid\u00e9os).'; return $plan }
     if ($s.ffmpeg -and -not (Test-Path -LiteralPath $s.ffmpeg)) { $plan.error = U 'FFmpeg introuvable au chemin indiqu\u00e9.'; return $plan }
+    if ([string]$s.profile -like 'hap*' -and -not (Test-HapEncoder (Get-FfmpegExe $s))) { $plan.error = U $NoHapMessage; return $plan }
 
     $singles = New-Object System.Collections.ArrayList
     $playlists = New-Object System.Collections.ArrayList
@@ -718,51 +800,161 @@ function New-DownloadPlan($s, $body, [bool]$forUi) {
 # ============================================================================
 #  Conversions : construction des commandes ffmpeg
 # ============================================================================
-function New-ConvertPlan($s, $body, [bool]$forUi) {
-    $in = if ($body.PSObject.Properties['input']) { ([string]$body.input).Trim().Trim('"') } else { '' }
-    if (-not $in) { return @{ error = 'Choisissez un fichier source.' } }
-    if (-not (Test-FullPath $in) -or -not [IO.File]::Exists($in)) { return @{ error = 'Fichier source introuvable.' } }
-    $exe = Get-FfmpegExe $s
-    if ($s.ffmpeg -and -not [IO.File]::Exists($exe)) { return @{ error = U 'FFmpeg introuvable au chemin indiqu\u00e9.' } }
+# "90", "1:30", "01:02:03.5" -> secondes. $null si vide, -1 si invalide.
+function ConvertTo-Seconds([string]$text) {
+    $t = $text.Trim().Replace(',', '.')
+    if (-not $t) { return $null }
+    if ($t -notmatch '^\d+(:\d{1,2}){0,2}(\.\d+)?$') { return -1 }
+    $sec = 0.0
+    foreach ($part in $t.Split(':')) { $sec = $sec * 60 + [double]::Parse($part, $Inv) }
+    return $sec
+}
 
-    $preset = $Presets[[string]$s.convPreset]
-    if (-not $preset) { $preset = $Presets['mp4compat'] }
-    $dir = [IO.Path]::GetDirectoryName($in)
-    $out = Join-Path $dir ([IO.Path]::GetFileNameWithoutExtension($in) + $preset.suffix)
-    if ($out -eq $in) { return @{ error = U 'Le fichier source porte d\u00e9j\u00e0 le nom de sortie de ce pr\u00e9r\u00e9glage.' } }
-    $plan = @{ error = $null; exe = $exe; input = $in; output = $out; dir = $dir }
-    if (-not $s.convOverwrite -and [IO.File]::Exists($out)) {
-        $plan.error = U 'Le fichier produit existe d\u00e9j\u00e0 : activez \u00ab Remplacer \u00bb ou renommez-le.'
-        return $plan
+# "30000/1001" -> 29.97
+function ConvertFrom-Rate([string]$rate) {
+    $parts = $rate.Split('/')
+    $n = 0.0; $d = 0.0
+    if ($parts.Count -eq 2 -and [double]::TryParse($parts[0], $Float, $Inv, [ref]$n) -and
+        [double]::TryParse($parts[1], $Float, $Inv, [ref]$d) -and $d -gt 0) {
+        return [math]::Round($n / $d, 2)
     }
+    return 0
+}
+
+# Resume d'un fichier via ffprobe : duree, taille, premier flux video et audio.
+function Get-MediaInfo([string]$ffmpegExe, [string]$file) {
+    $info = @{ path = $file }
+    if (-not (Test-FullPath $file) -or -not [IO.File]::Exists($file)) { $info.error = 'Fichier introuvable.'; return $info }
+    $info.name = [IO.Path]::GetFileName($file)
+    $info.size = (New-Object IO.FileInfo $file).Length
+    $probe = Join-Path (Split-Path -Parent $ffmpegExe) 'ffprobe.exe'
+    if (-not (Test-Path -LiteralPath $probe)) { return $info }
+    try {
+        $raw = & $probe -v error -print_format json -show_entries 'format=duration:stream=codec_type,codec_name,width,height,avg_frame_rate,channels' -i $file
+        $json = ($raw -join "`n") | ConvertFrom-Json
+        $d = 0.0
+        if ([double]::TryParse([string]$json.format.duration, $Float, $Inv, [ref]$d)) { $info.duration = $d }
+        foreach ($st in @($json.streams)) {
+            if ($st.codec_type -eq 'video' -and -not $info.video) {
+                $info.video = @{ codec = $st.codec_name; width = $st.width; height = $st.height; fps = (ConvertFrom-Rate $st.avg_frame_rate) }
+            } elseif ($st.codec_type -eq 'audio' -and -not $info.audio) {
+                $info.audio = @{ codec = $st.codec_name; channels = $st.channels }
+            }
+        }
+        if (-not $info.video -and -not $info.audio) { $info.error = U 'Aucun flux audio ou vid\u00e9o lisible.' }
+    } catch {
+        $info.error = 'Lecture impossible par ffprobe.'
+    }
+    return $info
+}
+
+# Commande ffmpeg d'un fichier avec les reglages courants.
+function New-ConvertPlan($s, [string]$in, $trim, [bool]$forUi) {
+    $plan = @{ error = $null; input = $in; output = $null }
+    if (-not (Test-FullPath $in) -or -not [IO.File]::Exists($in)) { $plan.error = 'Fichier introuvable.'; return $plan }
+    $id = [string]$s.convPreset
+    if (-not $Presets.Contains($id)) { $id = 'h264' }
+    $p = $Presets[$id]
+    $qi = [array]::IndexOf($Qualities, [string]$s.convQuality)
+    if ($qi -lt 0) { $qi = 1 }
+
+    $stem = [IO.Path]::GetFileNameWithoutExtension($in)
+    $dir = if ($s.convOutDir) { $s.convOutDir } else { [IO.Path]::GetDirectoryName($in) }
+    if ($id -eq 'png') {
+        # Sequence d'images : un dossier par source.
+        $dir = Join-Path $dir ($stem + $p.suffix)
+        $plan.output = $dir
+        $target = Join-Path $dir 'frame_%05d.png'
+        $exists = [IO.Directory]::Exists($dir) -and [IO.Directory]::EnumerateFileSystemEntries($dir).GetEnumerator().MoveNext()
+    } else {
+        $target = Join-Path $dir ($stem + $p.suffix)
+        $plan.output = $target
+        $exists = [IO.File]::Exists($target)
+    }
+    $plan.dir = $dir
+    $plan.exe = Get-FfmpegExe $s
+    if ($target -eq $in) { $plan.error = U 'La source porte d\u00e9j\u00e0 le nom de sortie : choisissez un autre dossier.'; return $plan }
+    if ($exists -and -not $s.convOverwrite) { $plan.error = U 'Le fichier produit existe d\u00e9j\u00e0 : activez \u00ab Remplacer \u00bb.'; return $plan }
 
     $a = New-Object 'System.Collections.Generic.List[string]'
     $a.AddRange([string[]]@('-hide_banner', '-nostdin'))
     if ($forUi) { $a.AddRange([string[]]@('-v', 'warning', '-nostats', '-progress', 'pipe:1')) }
     $a.Add($(if ($s.convOverwrite) { '-y' } else { '-n' }))
+    if ($trim.start) { $a.Add('-ss'); $a.Add($trim.start) }
+    if ($trim.end) { $a.Add('-to'); $a.Add($trim.end) }
     $a.Add('-i'); $a.Add($in)
-    if ($s.convScale -and -not $preset.audio) {
-        # Reduit seulement. HAP exige des dimensions multiples de 4.
-        $w = $s.convScale
-        $vf = if ($s.convPreset -like 'hap*') { "scale='trunc(min($w,iw)/4)*4':-4" } else { "scale='min($w,iw)':-2" }
-        $a.Add('-vf'); $a.Add($vf)
+
+    # Image : rotation, cadence, taille (reduction seulement, dimensions multiples de $m).
+    if ($p.kind -ne 'audio') {
+        $vf = New-Object 'System.Collections.Generic.List[string]'
+        switch ([string]$s.convRotate) {
+            'cw' { $vf.Add('transpose=1') }
+            'ccw' { $vf.Add('transpose=2') }
+            '180' { $vf.Add('hflip,vflip') }
+            'hflip' { $vf.Add('hflip') }
+        }
+        $fps = [string]$s.convFps
+        $w = [string]$s.convScale
+        if ($id -eq 'gif') {
+            if (-not $fps) { $fps = '15' }
+            if (-not $w) { $w = '640' }
+        }
+        if ($fps) { $vf.Add("fps=$fps") }
+        $m = if ($p.mult) { [int]$p.mult } else { 1 }
+        $flags = if ($id -eq 'gif') { ':flags=lanczos' } else { '' }
+        if ($w) { $vf.Add("scale='trunc(min($w,iw)/$m)*$m':-$m$flags") }
+        elseif ($m -gt 1) { $vf.Add("scale='trunc(iw/$m)*$m':-$m") }
+        if ($id -eq 'gif') {
+            $vf.Add("split[a][b];[a]palettegen=max_colors=$($p.colors[$qi]):stats_mode=diff[pal];[b][pal]paletteuse=dither=sierra2_4a")
+        }
+        if ($vf.Count) { $a.Add('-vf'); $a.Add(($vf -join ',')) }
     }
-    $a.AddRange([string[]]$preset.args)
-    $a.Add($out)
+
+    $a.AddRange([string[]]$p.args)
+    if ($p.q) { $a.AddRange([string[]]$p.q[$qi]) }
+    $loudnorm = @('-af', 'loudnorm=I=-14:TP=-1:LRA=11')
+    switch ($p.kind) {
+        'image' { $a.Add('-an') }
+        'audio' {
+            $a.Add('-vn')
+            if ($s.convAudio -eq 'norm') { $a.AddRange([string[]]$loudnorm) }
+        }
+        default {
+            if ($s.convAudio -eq 'mute') {
+                $a.Add('-an')
+            } else {
+                if ($s.convAudio -eq 'norm') { $a.AddRange([string[]]$loudnorm) }
+                $a.AddRange([string[]]$p.audio)
+                if ($p.aq) { $a.AddRange([string[]]$p.aq[$qi]) }
+            }
+        }
+    }
+    $a.Add($target)
     $plan.args = $a.ToArray()
     return $plan
 }
 
-# Duree en secondes (0 si inconnue) : sert au pourcentage de conversion.
-function Get-MediaDuration([string]$ffmpegExe, [string]$file) {
-    $probe = Join-Path (Split-Path -Parent $ffmpegExe) 'ffprobe.exe'
-    if (-not (Test-Path -LiteralPath $probe)) { return 0 }
-    try {
-        $out = & $probe -v error -show_entries format=duration -of 'default=nw=1:nk=1' -i $file | Select-Object -First 1
-        $d = 0.0
-        if ([double]::TryParse([string]$out, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$d)) { return $d }
-    } catch {}
-    return 0
+# Plusieurs fichiers, memes reglages. Les erreurs communes (temps, dossier) sont dans .error.
+function New-ConvertBatch($s, $body, [bool]$forUi) {
+    $batch = @{ error = $null; plans = @(); trim = @{ start = $null; end = $null; startSec = 0.0; endSec = $null } }
+    $inputs = @(@($body.inputs) | ForEach-Object { ([string]$_).Trim().Trim('"') } | Where-Object { $_ } | Select-Object -Unique)
+    if ($inputs.Count -eq 0) { $batch.error = 'Ajoutez au moins un fichier.'; return $batch }
+    if ($inputs.Count -gt 100) { $batch.error = 'Maximum 100 fichiers par conversion.'; return $batch }
+    if ($s.ffmpeg -and -not [IO.File]::Exists((Get-FfmpegExe $s))) { $batch.error = U 'FFmpeg introuvable au chemin indiqu\u00e9.'; return $batch }
+    if ([string]$s.convPreset -like 'hap*' -and -not (Test-HapEncoder (Get-FfmpegExe $s))) { $batch.error = U $NoHapMessage; return $batch }
+    if ($s.convOutDir -and -not (Test-FullPath $s.convOutDir)) {
+        $batch.error = U 'Le dossier de sortie doit \u00eatre un chemin complet (ex. D:\\Exports).'; return $batch
+    }
+
+    $start = ConvertTo-Seconds ([string]$body.start)
+    $end = ConvertTo-Seconds ([string]$body.end)
+    if ($start -eq -1 -or $end -eq -1) { $batch.error = U 'Temps invalide : \u00e9crivez 90, 1:30 ou 01:02:03.'; return $batch }
+    if ($null -ne $end -and $end -le [double]$start) { $batch.error = U 'La fin doit \u00eatre apr\u00e8s le d\u00e9but.'; return $batch }
+    if ($start -gt 0) { $batch.trim.start = ([double]$start).ToString('0.###', $Inv); $batch.trim.startSec = [double]$start }
+    if ($null -ne $end) { $batch.trim.end = ([double]$end).ToString('0.###', $Inv); $batch.trim.endSec = [double]$end }
+
+    $batch.plans = @(foreach ($in in $inputs) { New-ConvertPlan $s $in $batch.trim $forUi })
+    return $batch
 }
 
 # ============================================================================
@@ -838,30 +1030,53 @@ function Invoke-Api($ctx, [string]$path) {
             Send-Json $ctx 200 @{ ids = $ids }
         }
         '/api/convert' {
-            # dryRun : apercu (commande + fichier produit) sans rien lancer ni enregistrer.
+            # dryRun : apercu (fichiers produits + commande) sans rien lancer ni enregistrer.
             $body = Read-JsonBody $ctx
             $dry = [bool]($body.PSObject.Properties['dryRun'] -and $body.dryRun)
             $s = Merge-Options $script:Settings $body
-            $plan = New-ConvertPlan $s $body (-not $dry)
+            $batch = New-ConvertBatch $s $body (-not $dry)
             if ($dry) {
-                $cmd = if ($plan.args) { 'ffmpeg ' + [YtdlpStudio.JobQueue]::JoinArgsForCmd($plan.args) } else { '' }
-                Send-Json $ctx 200 @{ error = $plan.error; output = $plan.output; command = $cmd }
+                $firstOk = $batch.plans | Where-Object { -not $_.error } | Select-Object -First 1
+                $items = @(foreach ($p in $batch.plans) { @{ input = $p.input; output = $p.output; error = $p.error } })
+                $cmd = if ($firstOk) { 'ffmpeg ' + [YtdlpStudio.JobQueue]::JoinArgsForCmd($firstOk.args) } else { '' }
+                Send-Json $ctx 200 @{ error = $batch.error; items = $items; command = $cmd }
                 return
             }
-            if ($plan.error) { Send-Json $ctx 400 @{ error = $plan.error }; return }
+            if ($batch.error) { Send-Json $ctx 400 @{ error = $batch.error }; return }
+            $bad = $batch.plans | Where-Object { $_.error } | Select-Object -First 1
+            if ($bad) { Send-Json $ctx 400 @{ error = ($bad.input -replace '^.*[\\/]', '') + ' : ' + $bad.error }; return }
             $script:Settings = $s
             Save-Settings $s
-            $duration = Get-MediaDuration $plan.exe $plan.input
-            $id = $Queue.Add($plan.exe, [IO.Path]::GetFileName($plan.input), 'convert', $plan.dir, [string[]]$plan.args, 1, $duration, $plan.output)
-            Log ('Conversion : ' + $plan.input + ' -> ' + $plan.output)
-            Send-Json $ctx 200 @{ ids = @($id); output = $plan.output }
+            $trim = $batch.trim
+            $ids = @(foreach ($p in $batch.plans) {
+                # Duree reelle a encoder (decoupe comprise) : sert au pourcentage.
+                $full = [double](Get-MediaInfo $p.exe $p.input).duration
+                $end = if ($null -eq $trim.endSec) { $full } elseif ($full -gt 0) { [math]::Min($full, $trim.endSec) } else { $trim.endSec }
+                $Queue.Add($p.exe, [IO.Path]::GetFileName($p.input), 'convert', $p.dir, [string[]]$p.args, 1, [math]::Max(0.0, $end - $trim.startSec), $p.output)
+            })
+            Log ('Conversion : +' + $ids.Count + ' fichier(s)')
+            Send-Json $ctx 200 @{ ids = $ids }
         }
-        { $_ -eq '/api/pick-folder' -or $_ -eq '/api/pick-file' } {
+        '/api/probe' {
+            $exe = Get-FfmpegExe $script:Settings
+            $paths = @((Read-JsonBody $ctx).paths) | Where-Object { $_ } | Select-Object -First 100
+            $items = @(foreach ($raw in $paths) { Get-MediaInfo $exe (([string]$raw).Trim().Trim('"')) })
+            Send-Json $ctx 200 @{ items = $items }
+        }
+        '/api/pick-folder' {
             $body = Read-JsonBody $ctx
-            $folders = ($path -eq '/api/pick-folder')
-            $title = if ($folders) { U 'Dossier de destination des t\u00e9l\u00e9chargements' } else { U 'Fichier \u00e0 convertir' }
             try {
-                Send-Json $ctx 200 @{ path = [YtdlpStudio.ShellPicker]::Pick($title, [string]$body.start, $folders) }
+                $picked = [YtdlpStudio.ShellPicker]::Pick((U 'Choisir un dossier'), [string]$body.start, $true)
+                Send-Json $ctx 200 @{ path = $(if ($picked.Length) { $picked[0] } else { $null }) }
+            } catch {
+                Send-Json $ctx 500 @{ error = (U 'S\u00e9lecteur indisponible : ') + $_.Exception.Message }
+            }
+        }
+        '/api/pick-file' {
+            $body = Read-JsonBody $ctx
+            try {
+                $picked = [YtdlpStudio.ShellPicker]::Pick((U 'Fichiers \u00e0 convertir'), [string]$body.start, $false)
+                Send-Json $ctx 200 @{ paths = $picked }
             } catch {
                 Send-Json $ctx 500 @{ error = (U 'S\u00e9lecteur indisponible : ') + $_.Exception.Message }
             }

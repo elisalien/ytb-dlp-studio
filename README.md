@@ -10,7 +10,10 @@ MP4 compatible, MP3, export HAP pour Resolume, extraction de frames — sans lig
 - **Téléchargement direct** — collez ou glissez vos liens, cliquez sur Télécharger : la progression s'affiche dans la file d'attente
 - **Formats** — Compatible (H.264 · AAC · MP4), Ultime, 4K, 2K, Full HD, MP3, Frames PNG
 - **VJ** — HAP / HAP Q (`.mov`) lus nativement par Resolume et Alley
-- **Onglet Convertir** — fichiers locaux vers MP4 compatible, MP4 HQ, HAP, HAP Q ou MP3, avec largeur maximale
+- **Onglet Convertir** — conversion par lots de fichiers locaux, avec analyse de chaque fichier (résolution, durée, codecs)
+  - Formats : MP4 H.264 / H.265, WebM VP9, ProRes 422, HAP / HAP Alpha / HAP Q, MP3, AAC, WAV, FLAC, GIF animé, séquence PNG
+  - Réglages : qualité, largeur max, images par seconde, rotation, son (garder, normaliser, supprimer), extrait début / fin, dossier de sortie
+  - Un téléchargement terminé s'envoie au convertisseur en un clic
 - **Rangement automatique** — dossier par playlist, sous-dossier « Lot » pour plusieurs liens
 - **Favori navigateur** — envoie la page vidéo courante vers Studio en un clic
 - **Portable** — yt-dlp, FFmpeg et Deno dans `bin/`, mis à jour automatiquement au lancement
@@ -37,7 +40,7 @@ bash install.sh
 
 1. Lancez `launch.bat` : l'interface s'ouvre dans le navigateur (Firefox en priorité)
 2. **Télécharger** — liens, format, dossier de destination → Télécharger (Ctrl + Entrée)
-3. **Convertir** — fichier source, préréglage → Convertir ; le résultat est créé à côté de la source
+3. **Convertir** — fichiers, format, réglages → Convertir ; les résultats sont créés à côté des sources ou dans le dossier choisi
 
 Une fenêtre « yt-dlp Studio - serveur » reste réduite dans la barre des tâches : c'est elle qui travaille.
 Erreur 403 : laissez « Cookies du navigateur » activé avec Firefox connecté à YouTube.

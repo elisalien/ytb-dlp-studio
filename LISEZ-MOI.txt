@@ -41,11 +41,16 @@ interface dans le navigateur. Portable : tout reste dans ce dossier.
    - Un seul lien                  -> directement dans la destination.
 
 3. Onglet CONVERTIR
-   - Choisissez un fichier sur le PC.
-   - Preregage : MP4 compatible, MP4 HQ, HAP, HAP Q ou MP3.
-   - Largeur maximale facultative (reduit seulement).
-   - Le fichier produit est cree a cote de la source
-     (ex. clip-compatible.mp4, clip-hap.mov).
+   - Ajoutez un ou plusieurs fichiers : "Parcourir..." (selection
+     multiple), chemin colle, ou bouton "Convertir ce fichier" sur un
+     telechargement termine. Chaque fichier affiche resolution, duree,
+     codecs et taille.
+   - Format : MP4 H.264 / H.265, WebM VP9, ProRes 422, HAP, HAP Alpha,
+     HAP Q, MP3, AAC, WAV, FLAC, GIF anime ou images PNG.
+   - Reglages : qualite, largeur max, images par seconde, rotation,
+     son (garder, normaliser, supprimer), debut / fin pour un extrait.
+   - Sortie : a cote de chaque source ou dans un dossier choisi
+     (ex. clip-h264.mp4, clip-hap.mov, dossier clip-frames).
 
 4. La file d'attente affiche la progression, le temps restant,
    le journal et un bouton pour ouvrir le dossier.
