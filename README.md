@@ -1,11 +1,20 @@
 # yt-dlp Studio
 
-Téléchargeur vidéo 4K / 8K et convertisseur local, piloté depuis le navigateur.
-MP4 compatible, MP3, export HAP pour Resolume, extraction de frames — sans ligne de commande.
+> Téléchargeur vidéo 4K / 8K et convertisseur local, piloté depuis le navigateur : MP4 compatible, MP3, export HAP pour Resolume, extraction de frames — sans ligne de commande.
 
----
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-informational) ![Stack](https://img.shields.io/badge/stack-PowerShell%20%2B%20HTML-blue) ![Resolume](https://img.shields.io/badge/export-HAP%20%2F%20Resolume-purple)
 
-## Fonctionnalités (Windows)
+**[Télécharger la dernière release](https://github.com/elisalien/ytb-dlp-studio/releases/latest)**
+
+<p align="center"><img src="assets/icon-source.png" width="160" alt="Icône yt-dlp Studio"></p>
+
+## À propos
+
+Interface locale, dans le navigateur, au-dessus de yt-dlp et FFmpeg : on colle des liens, on choisit un format, et un petit serveur local fait le travail. Pensé aussi pour les VJ, avec l'export HAP / HAP Q lu nativement par Resolume et Alley. Portable : yt-dlp, FFmpeg et Deno sont téléchargés dans `bin/` et rien n'est installé ailleurs sur le PC. Fait pour Lucien.
+
+## Fonctionnalités
+
+Version Windows (application complète) :
 
 - **Téléchargement direct** — collez ou glissez vos liens, cliquez sur Télécharger : la progression s'affiche dans la file d'attente
 - **Formats** — Compatible (H.264 · AAC · MP4), Ultime, 4K, 2K, Full HD, MP3, Frames PNG
@@ -18,7 +27,7 @@ MP4 compatible, MP3, export HAP pour Resolume, extraction de frames — sans lig
 - **Favori navigateur** — envoie la page vidéo courante vers Studio en un clic
 - **Portable** — yt-dlp, FFmpeg et Deno dans `bin/`, mis à jour automatiquement au lancement
 
----
+Versions macOS / Linux (`dist-mac/`, `dist-linux/`) : générateur de commandes sans serveur — l'interface construit la commande yt-dlp ou ffmpeg, à copier puis coller dans le Terminal. Compatible Intel et Apple Silicon (macOS), x86_64 et ARM64 (Linux).
 
 ## Installation
 
@@ -34,9 +43,12 @@ chmod +x install.sh launch.sh update.sh
 bash install.sh
 ```
 
----
+### Mise à jour
 
-## Utilisation (Windows)
+Automatique au lancement (au plus toutes les 12 h). Pour forcer : `update.bat` / `update.sh`.
+Seul ce qui est périmé est retéléchargé. FFmpeg utilise la build *full* de gyan.dev, la seule qui contient l'encodeur HAP.
+
+## Utilisation
 
 1. Lancez `launch.bat` : l'interface s'ouvre dans le navigateur (Firefox en priorité)
 2. **Télécharger** — liens, format, dossier de destination → Télécharger (Ctrl + Entrée)
@@ -45,16 +57,20 @@ bash install.sh
 Une fenêtre « yt-dlp Studio - serveur » reste réduite dans la barre des tâches : c'est elle qui travaille.
 Erreur 403 : laissez « Cookies du navigateur » activé avec Firefox connecté à YouTube.
 
----
+Mode manuel : Options avancées → « Commande équivalente » → Copier, puis collez-la dans `terminal.bat`.
 
-## Mise à jour
+Le mode d'emploi détaillé est dans [LISEZ-MOI.txt](LISEZ-MOI.txt) (Windows), [dist-mac/LISEZ-MOI.txt](dist-mac/LISEZ-MOI.txt) et [dist-linux/LISEZ-MOI.txt](dist-linux/LISEZ-MOI.txt).
 
-Automatique au lancement (au plus toutes les 12 h). Pour forcer : `update.bat` / `update.sh`.
-Seul ce qui est périmé est retéléchargé. FFmpeg utilise la build *full* de gyan.dev, la seule qui contient l'encodeur HAP.
+### Sécurité
 
----
+- Le serveur écoute uniquement sur `127.0.0.1` et exige un jeton aléatoire injecté dans la page ; l'en-tête `Host` est vérifié (anti DNS rebinding)
+- La page n'envoie jamais de ligne de commande : le serveur construit les arguments à partir d'options en liste blanche, sans shell
+- Les titres de vidéos sont affichés via `textContent` uniquement (pas de XSS)
+- Binaires téléchargés en HTTPS depuis les sites officiels
 
-## Structure
+Usage personnel et légal uniquement. Respectez le droit d'auteur.
+
+## Structure du projet
 
 ```
 server.ps1        # serveur local : file d'attente yt-dlp / ffmpeg, API de la page
@@ -67,20 +83,13 @@ extract-frames.bat, create-shortcut.*, assets/
 dist-mac/, dist-linux/   # versions macOS et Linux
 ```
 
----
+Les archives `yt-dlp-4k-windows.zip`, `yt-dlp-4k-mac.zip` et `yt-dlp-4k-linux.zip` sont produites par le workflow GitHub Actions `.github/workflows/release.yml` à chaque tag `v*`.
 
-## Sécurité
+## Stack technique
 
-- Le serveur écoute uniquement sur `127.0.0.1` et exige un jeton aléatoire injecté dans la page ; l'en-tête `Host` est vérifié (anti DNS rebinding)
-- La page n'envoie jamais de ligne de commande : le serveur construit les arguments à partir d'options en liste blanche, sans shell
-- Les titres de vidéos sont affichés via `textContent` uniquement (pas de XSS)
-- Binaires téléchargés en HTTPS depuis les sites officiels
+PowerShell (serveur local), HTML / CSS / JavaScript (interface), Batch et Bash (lanceurs et scripts d'installation), yt-dlp, FFmpeg (build *full* de gyan.dev), Deno, GitHub Actions.
 
-Usage personnel et légal uniquement. Respectez le droit d'auteur.
-
----
-
-## Crédits
+## Crédits & licence
 
 | Outil  | Licence   | Lien |
 |--------|-----------|------|
@@ -90,6 +99,13 @@ Usage personnel et légal uniquement. Respectez le droit d'auteur.
 
 Non redistribués : téléchargés à l'installation.
 
+made with ♥ by **elisalien** — pour Lucien
+
+Aucune licence n'est spécifiée pour yt-dlp Studio — tous droits réservés.
+
 ---
 
-made with ♥ by **elisalien** — pour Lucien
+<p align="center">
+  Fait par <a href="https://github.com/elisalien">Élisalien</a> ·
+  <a href="https://gitlab.com/elisalien/catalog">Catalogue des shaders, sources & logiciels</a>
+</p>
