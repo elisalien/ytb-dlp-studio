@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Tag de version à publier (ex : v1.5)'
+        description: 'Tag de version à publier (ex : v2.0.0)'
         required: true
-        default: 'v1.5'
+        default: 'v2.0.0'
 
 permissions:
   contents: write
@@ -31,13 +31,13 @@ jobs:
             echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           fi
 
-      # Application Windows : fichiers a la racine du depot.
+      # Application Windows (mode navigateur, launch.bat) : fichiers a la racine du depot.
       - name: Package Windows
         run: |
           zip -r yt-dlp-4k-windows.zip \
             index.html server.ps1 launch.bat install.bat update.bat update.ps1 \
             terminal.bat extract-frames.bat create-shortcut.bat create-shortcut.ps1 \
-            LISEZ-MOI.txt assets
+            LISEZ-MOI.txt version.txt assets ui -x 'assets/*.py' 'assets/__pycache__/*'
 
       - name: Package macOS
         run: cd dist-mac && zip -r ../yt-dlp-4k-mac.zip .
@@ -55,3 +55,66 @@ jobs:
             yt-dlp-4k-windows.zip
             yt-dlp-4k-mac.zip
             yt-dlp-4k-linux.zip
+
+  # RENARD.mp3 : app de bureau Windows (WebView2), installateur + zip de mise a jour.
+  windows:
+    runs-on: windows-latest
+    needs: release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = if ('${{ github.event_name }}' -eq 'workflow_dispatch') { '${{ github.event.inputs.version }}' } else { '${{ github.ref_name }}' }
+          $v = $tag.TrimStart('v', 'V')
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$v" >> $env:GITHUB_OUTPUT
+          # L'app compare version.txt au tag de la derniere release : ils doivent etre egaux.
+          Set-Content -LiteralPath version.txt -Value $v -NoNewline -Encoding ascii
+
+      - name: Build RENARD.mp3.exe
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File desktop\build.ps1
+
+      - name: Outils hors ligne (bin)
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File update.ps1
+
+      - name: Images de l'installateur
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          python desktop\make_installer_art.py
+
+      - name: Installateur (Inno Setup)
+        shell: pwsh
+        run: |
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; }
+          & $iscc "/DAppVersion=${{ steps.ver.outputs.version }}" "/DOutDir=$PWD\dist" desktop\installer.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-Item dist\RENARD-setup.exe
+
+      - name: Zip de mise a jour (sans bin)
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP 'renard-update'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item RENARD.mp3.exe, Microsoft.Web.WebView2.Core.dll, Microsoft.Web.WebView2.WinForms.dll, WebView2Loader.dll, index.html, server.ps1, update.ps1, version.txt -Destination $stage
+          Copy-Item ui -Destination $stage -Recurse
+          Copy-Item assets -Destination $stage -Recurse
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $stage 'assets\__pycache__'), (Join-Path $stage 'assets\*.py')
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath dist\RENARD-update.zip -Force
+          Get-Item dist\RENARD-update.zip
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: |
+            dist/RENARD-setup.exe
+            dist/RENARD-update.zip
