@@ -180,7 +180,9 @@ namespace Renard
         {
             try
             {
-                CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(root, "webview"));
+                // Autoplay sans geste : le renard peut parler (bulles) des le lancement.
+                CoreWebView2EnvironmentOptions opts = new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required");
+                CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(root, "webview"), opts);
                 await web.EnsureCoreWebView2Async(env);
             }
             catch (Exception ex)
