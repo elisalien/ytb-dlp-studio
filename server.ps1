@@ -9,7 +9,10 @@
 param(
     [int]$Port = 8765,
     [switch]$NoBrowser,
-    [switch]$NoUpdate
+    [switch]$NoUpdate,
+    # Application de bureau RENARD.mp3 : dossier de telechargement par defaut
+    # (Telechargements\RENARD.mp3) passe par RENARD.mp3.exe.
+    [string]$DefaultDest = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,7 +23,7 @@ $Root = $PSScriptRoot
 $Bin = Join-Path $Root 'bin'
 $Ytdlp = Join-Path $Bin 'yt-dlp.exe'
 $SettingsPath = Join-Path $Root 'settings.json'
-$DefaultDest = Join-Path $Root ('T' + [char]0xE9 + 'l' + [char]0xE9 + 'chargements')
+if (-not $DefaultDest) { $DefaultDest = Join-Path $Root ('T' + [char]0xE9 + 'l' + [char]0xE9 + 'chargements') }
 $BaseUrl = "http://127.0.0.1:$Port/"
 $Token = [guid]::NewGuid().ToString('N')
 
@@ -1133,6 +1136,16 @@ function Invoke-Request($ctx) {
         return
     }
 
+    # Fichiers statiques de l'interface (ui\*.js, ui\*.css) : noms en liste blanche.
+    if ($req.HttpMethod -eq 'GET' -and $path -match '^/ui/([a-z0-9-]+)\.(js|css)$') {
+        $file = Join-Path (Join-Path $Root 'ui') ($Matches[1] + '.' + $Matches[2])
+        if (Test-Path -LiteralPath $file) {
+            $type = if ($Matches[2] -eq 'js') { 'text/javascript; charset=utf-8' } else { 'text/css; charset=utf-8' }
+            Send-Bytes $ctx 200 ([IO.File]::ReadAllBytes($file)) $type
+        } else { Send-Json $ctx 404 @{ error = 'not found' } }
+        return
+    }
+
     if ($path.StartsWith('/api/')) {
         # Jeton obligatoire : un site tiers ne peut ni le lire ni envoyer d'en-tete
         # personnalise sans pre-requete CORS (a laquelle on ne repond jamais).
@@ -1181,7 +1194,7 @@ try {
 } catch {
     Log "Impossible d'ecouter sur le port $Port : $($_.Exception.Message)"
     Log 'Un autre programme utilise peut-etre ce port.'
-    Read-Host 'Entree pour fermer'
+    if (-not $NoBrowser) { Read-Host 'Entree pour fermer' }
     exit 1
 }
 

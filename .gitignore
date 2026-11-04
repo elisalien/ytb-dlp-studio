@@ -20,3 +20,11 @@ settings.json
 # Outillage / sauvegardes
 graphify-out/
 *.bak
+
+# Application de bureau RENARD.mp3 (desktop\build.ps1)
+*.dll
+desktop/packages/
+desktop/out/
+webview/
+renard.ini
+.backup/
