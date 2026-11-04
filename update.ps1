@@ -202,7 +202,15 @@ if ($hasHap -and -not $rv) {
         elseif (-not $hasHap) { 'Build sans encodeur HAP : installation de la build complete...' }
         else { "Mise a jour vers $rv..." })
     try {
-        Install-FromZip 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.zip' @{
+        # gyan.dev ne publie plus la build "full" qu'en .7z : le .zip vient du miroir GitHub officiel (GyanD).
+        $ffUrl = $null
+        try {
+            $rel = Invoke-RestMethod -Uri 'https://api.github.com/repos/GyanD/codexffmpeg/releases/latest' -UserAgent $UserAgent -TimeoutSec 20
+            $ffUrl = [string]($rel.assets | Where-Object { $_.name -like '*full_build.zip' } | Select-Object -First 1).browser_download_url
+        } catch {}
+        if (-not $ffUrl -and $rv) { $ffUrl = "https://github.com/GyanD/codexffmpeg/releases/download/$rv/ffmpeg-$rv-full_build.zip" }
+        if (-not $ffUrl) { throw 'adresse de la build FFmpeg complete introuvable (GitHub injoignable ?)' }
+        Install-FromZip $ffUrl @{
             'ffmpeg.exe'  = $ffmpeg
             'ffprobe.exe' = (Join-Path $Bin 'ffprobe.exe')
         }

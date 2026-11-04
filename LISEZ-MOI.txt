@@ -14,8 +14,9 @@ interface dans le navigateur. Portable : tout reste dans ce dossier.
       Deno est le moteur JavaScript requis par YouTube.
    -> Si Windows SmartScreen apparait : "Informations complementaires"
       puis "Executer quand meme".
-2. Facultatif : create-shortcut.bat cree le raccourci "yt-dlp Studio"
-   sur le Bureau (clic droit -> Epingler a la barre des taches).
+2. L'installation cree aussi le raccourci "yt-dlp Studio" sur le
+   Bureau (clic droit -> Epingler a la barre des taches).
+   S'il disparait : create-shortcut.bat le recree.
 
 ----------------------------------------------------------------
  UTILISATION

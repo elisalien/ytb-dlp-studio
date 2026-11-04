@@ -38,10 +38,14 @@ if not exist "bin\ffmpeg.exe" goto :error
 if not exist "bin\deno.exe"   goto :error
 
 echo.
+echo  Creation du raccourci "yt-dlp Studio" sur le Bureau...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0create-shortcut.ps1"
+
+echo.
 echo ============================================================
 echo    Installation terminee.
-echo    Double-cliquez maintenant sur  launch.bat
-echo    (create-shortcut.bat ajoute un raccourci sur le Bureau)
+echo    Double-cliquez sur le raccourci "yt-dlp Studio" du Bureau
+echo    (ou sur launch.bat dans ce dossier).
 echo ============================================================
 echo.
 pause
