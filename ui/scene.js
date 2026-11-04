@@ -12,7 +12,7 @@
     "use strict";
 
     const LAT = 46;
-    const HILL = 36;          // hauteur (pixels d'art) de la bande de colline réservée en bas
+    const HILL = 40;          // hauteur (pixels d'art) de la bande laissée libre en bas pour le renard
     const FPS = 30;
 
     const canvas = document.getElementById("scene");
@@ -281,7 +281,7 @@
         const home = foxHome();
         for (let x = 0; x < W; x++) {
             const dx = (x - home) / Math.max(60, W * 0.35);
-            const top = Math.round(ground + 6 - 5 * Math.exp(-dx * dx * 2.2) + Math.sin(x / 23) * 1.2 + Math.sin(x / 9.3) * 0.6);
+            const top = Math.round(H - 9 - 4 * Math.exp(-dx * dx * 2.2) + Math.sin(x / 23) * 1.2 + Math.sin(x / 9.3) * 0.6);
             hillTop[x] = top;
             for (let y = top; y < H; y++) {
                 const t = (y - top) / Math.max(1, H - top);
@@ -708,12 +708,12 @@
         const a = fox.action, at = t - fox.actionT;
         if (a && at > fox.actionLen) fox.action = null;
         const moving = !fox.action && fox.mood !== "download" && Math.abs(fox.x - foxHome()) > 0.6;
-        let spr, lift = 0;
+        let spr, lift = 0, holding = false;
         if (fox.action === "jump") {
             const k = (at % 0.65) / 0.65;
             lift = Math.round(Math.sin(k * Math.PI) * 9);
             spr = lift > 1 ? foxRun({ air: true, eyes: "happy", ears: "up" }) : foxSit({ eyes: "happy", t });
-            if (Math.random() < 0.08) emit("heart", fox.x - 2 + (Math.random() * 12 - 6), groundAt(fox.x) - 22 - lift, {
+            if (Math.random() < 0.14) emit("heart", fox.x - 2 + (Math.random() * 12 - 6), groundAt(fox.x) - 22 - lift, {
                 vy: -10, vx: (Math.random() - 0.5) * 6, max: 1.6, wobble: 6, color: ["#f4a6c8", "#f7b8c4", "#e98fb0"][Math.floor(Math.random() * 3)]
             });
         } else if (fox.action === "sad") {
@@ -734,6 +734,7 @@
             spr = foxPlay({ t });
         } else if (fox.sign) {
             spr = foxSit({ raise: true, ears: "alert", t });
+            holding = true;
         } else if (fox.alertUntil > t) {
             spr = foxSit({ eyes: "wide", ears: "alert", t });
         } else if (fox.awakeUntil > t) {
@@ -748,6 +749,7 @@
                 emit(night && Math.random() < 0.5 ? "Z" : "z", fox.x + 6, groundAt(fox.x) - 14, { vy: -5, vx: 2.5, max: night ? 3.2 : 2.4, wobble: 3, color: night ? "#e9e3ff" : "#5d6a8f" });
             }
         }
+        fox.holding = holding;
         return { spr, lift };
     }
 
@@ -789,7 +791,7 @@
             RenardSound.puff();
             setTimeout(() => RenardSound.laugh(), 300);
             // La danse commence avec la musique (ou sans, si elle tarde trop).
-            RenardSound.music().then(ok => { if (egg && !egg.musicAt) egg.musicAt = ok ? now : now; });
+            RenardSound.music().then(ok => { if (egg && !egg.musicAt) egg.musicAt = now; });
         }
         setTimeout(() => { if (egg && !egg.musicAt) egg.musicAt = now; }, 2500);
         hideBubble();
@@ -840,7 +842,6 @@
         if (!hitFox) return;
         e.preventDefault();
         if (egg) return;                        // pendant la danse, les clics ne font rien
-        if (fox.sign && signHandler && Math.abs(x - (fox.x + 9)) < 6 && y < fy - 14) { signHandler(); return; }
         clicks.push(now);
         clicks = clicks.filter(c => now - c < 4);
         if (clicks.length >= 10) { clicks = []; startEgg(); return; }
@@ -891,22 +892,27 @@
     }
 
     function placeOverlays() {
-        const x = fox.x * S / dpr, top = (groundAt(fox.x) - 26) * S / dpr;
+        const signUp = fox.sign && fox.holding && !egg;
+        const x = fox.x * S / dpr, top = (groundAt(fox.x) - (signUp ? 40 : 26)) * S / dpr;
         const vh = H * S / dpr;
         if (bubbleEl && !bubbleEl.hidden) {
             bubbleEl.style.left = Math.round(x) + "px";
             bubbleEl.style.bottom = Math.round(vh - top + 6) + "px";
         }
-        if (signEl && !signEl.hidden) {
-            signEl.style.left = Math.round((fox.x + 9) * S / dpr) + "px";
-            signEl.style.bottom = Math.round(vh - (groundAt(fox.x) - 17) * S / dpr) + "px";
+        if (signEl) {
+            // Le panneau n'apparaît que quand le renard le tient (assis, au calme).
+            const show = fox.sign && fox.holding && !egg && !fox.hidden;
+            if (signEl.hidden === show) signEl.hidden = !show;
+            if (show) {
+                signEl.style.left = Math.round((fox.x + 9.5) * S / dpr) + "px";
+                signEl.style.bottom = Math.round(vh - (groundAt(fox.x) - 28) * S / dpr) + "px";
+            }
         }
     }
 
     function showSign(text, onClickSign) {
         fox.sign = !!text;
         if (!signEl) return;
-        signEl.hidden = !text;
         if (text) signEl.textContent = text;
         signHandler = onClickSign || null;
         placeOverlays();
@@ -924,7 +930,7 @@
         cssPx = S / dpr;
         canvas.style.width = (W * cssPx) + "px";
         canvas.style.height = (H * cssPx) + "px";
-        document.documentElement.style.setProperty("--hill", Math.round((HILL - 2) * cssPx) + "px");
+        document.documentElement.style.setProperty("--hill", Math.round(HILL * cssPx) + "px");
         document.documentElement.style.setProperty("--px", cssPx + "px");
         const r = rng(3);
         starList = [];
@@ -991,9 +997,9 @@
                 const { spr, lift } = poseFox();
                 const gy = groundAt(fox.x);
                 spr.draw(g, Math.round(fox.x - FCX), gy - FEET - lift + 1, fox.dir < 0);
-                if (fox.sign) {
-                    g.fillStyle = COLORS[13];
-                    g.fillRect(Math.round(fox.x + 9), gy - 17, 1, 8);
+                if (fox.holding) {
+                    g.fillStyle = TINT[13];
+                    g.fillRect(Math.round(fox.x + 9), gy - 29, 1, 15);
                 }
             }
         }

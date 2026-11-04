@@ -1,560 +1,267 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="studio-token" content="__STUDIO_TOKEN__">
-    <title>yt-dlp Studio</title>
-    <style>
-        /* Palette Hatsune Miku : turquoise #39c5bb, gris de la tenue, touches de rose #e12885.
-           Turquoise = sélection et terminé, rose = en cours, corail = échec.
-           Formes arrondies, peu de décor : une note ♪ par-ci par-là, pas plus.
-           Polices système uniquement : l'app reste 100 % locale. */
-        :root {
-            --ground: #f2f9f8;
-            --panel: #ffffff;
-            --raised: #e8f4f3;
-            --line: #d5eae7;
-            --line-2: #b5d9d5;
-            --text: #2f3b40;
-            --dim: #5a6a70;
-            --faint: #86979b;
-            --teal: #39c5bb;
-            --teal-ink: #14877f;
-            --teal-soft: rgba(57, 197, 187, 0.14);
-            --teal-btn: linear-gradient(135deg, #1fa89e, #12857e);
-            --pink: #e12885;
-            --pink-ink: #c01d70;
-            --pink-soft: rgba(225, 40, 133, 0.1);
-            --coral: #d9434b;
-            --amber: #b8740c;
-            --shadow: 0 1px 2px rgba(20, 90, 85, 0.05), 0 10px 30px rgba(20, 90, 85, 0.07);
-            --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
-            --body: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-            --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
-            --r: 12px;
-            color-scheme: light;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --ground: #0f181b;
-                --panel: #152125;
-                --raised: #1c2b30;
-                --line: #25383d;
-                --line-2: #354e54;
-                --text: #e3f2f0;
-                --dim: #a0b5b6;
-                --faint: #6f878b;
-                --teal-ink: #62d9d0;
-                --teal-soft: rgba(57, 197, 187, 0.16);
-                --pink: #ff5fae;
-                --pink-ink: #ff86c1;
-                --pink-soft: rgba(255, 95, 174, 0.13);
-                --coral: #ff6b70;
-                --amber: #f0b04a;
-                --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-                color-scheme: dark;
-            }
-        }
-        * { box-sizing: border-box; }
-        [hidden] { display: none !important; }
-        body {
-            margin: 0; min-height: 100vh; display: flex; flex-direction: column;
-            background: var(--ground); color: var(--text);
-            font: 14px/1.55 var(--body); -webkit-font-smoothing: antialiased;
-        }
-        button, input, select, textarea { font: inherit; color: inherit; }
-        code { font-family: var(--mono); font-size: 0.92em; }
-        :focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
-
-        /* ---------- En-tête ---------- */
-        .top {
-            position: sticky; top: 0; z-index: 5;
-            display: flex; align-items: center; gap: 24px; padding: 10px 24px;
-            background: color-mix(in srgb, var(--panel) 85%, transparent);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--line);
-        }
-        .brand { display: flex; align-items: center; gap: 10px; }
-        .brand img { width: 32px; height: 32px; image-rendering: pixelated; }
-        .wordmark { font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-        .wordmark b { font-weight: 700; color: var(--teal-ink); }
-        .tabs { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--raised); }
-        .tab {
-            padding: 6px 18px; border: 0; border-radius: 999px; background: none; cursor: pointer;
-            font-size: 13px; font-weight: 600; color: var(--dim); transition: background-color 0.2s, color 0.2s;
-        }
-        .tab:hover { color: var(--text); }
-        .tab[aria-selected="true"] { background: var(--panel); color: var(--teal-ink); box-shadow: 0 1px 4px rgba(20, 90, 85, 0.14); }
-        .status {
-            margin-left: auto; display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px 5px 10px;
-            border-radius: 999px; background: var(--raised); font-size: 12.5px; font-weight: 600; color: var(--dim); white-space: nowrap;
-        }
-        .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
-        .status[data-state="ok"] { color: var(--teal-ink); background: var(--teal-soft); }
-        .status[data-state="ok"] i { background: var(--teal); }
-        .status[data-state="busy"] i { background: var(--amber); }
-        .status[data-state="live"] { color: var(--pink-ink); background: var(--pink-soft); }
-        .status[data-state="live"] i { background: var(--pink); animation: pulse 1.4s ease-in-out infinite; }
-        .status[data-state="off"] { color: var(--coral); }
-        .status[data-state="off"] i { background: var(--coral); }
-        @keyframes pulse { 50% { transform: scale(0.55); opacity: 0.5; } }
-
-        .banner {
-            width: calc(100% - 48px); max-width: 1232px; margin: 16px auto 0; padding: 10px 16px; border-radius: var(--r);
-            border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
-            background: color-mix(in srgb, var(--amber) 10%, var(--panel)); font-size: 13px;
-        }
-        .banner.err {
-            border-color: color-mix(in srgb, var(--coral) 35%, transparent);
-            background: color-mix(in srgb, var(--coral) 9%, var(--panel));
-        }
-
-        /* ---------- Plateau ---------- */
-        .deck {
-            flex: 1; width: 100%; max-width: 1280px; margin: 0 auto; padding: 24px;
-            display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start;
-        }
-        .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); }
-        .panel.drop { border-color: var(--teal); box-shadow: 0 0 0 4px var(--teal-soft), var(--shadow); }
-        .section { padding: 20px 24px; border-bottom: 1px solid var(--line); }
-        .eyebrow {
-            display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px;
-            font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--text);
-        }
-        .aside { font-family: var(--body); font-size: 12px; font-weight: 400; color: var(--faint); }
-        .hint { margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--faint); }
-        .hint b { font-weight: 600; color: var(--dim); }
-
-        .field, textarea {
-            width: 100%; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: var(--r);
-            background: var(--ground); color: var(--text); transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
-        }
-        textarea { min-height: 112px; resize: vertical; font-family: var(--mono); font-size: 13px; line-height: 1.65; }
-        .field:hover, textarea:hover { border-color: var(--line-2); }
-        .field:focus, textarea:focus { outline: none; border-color: var(--teal); background: var(--panel); box-shadow: 0 0 0 4px var(--teal-soft); }
-        .path { font-family: var(--mono); font-size: 13px; }
-        ::placeholder { color: var(--faint); }
-        select.field {
-            appearance: none; cursor: pointer; padding-right: 36px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2339c5bb' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: right 14px center;
-        }
-        select option { background: var(--panel); color: var(--text); }
-        .row { display: flex; gap: 8px; }
-        .row .field { flex: 1; min-width: 0; }
-
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 16px;
-            border: 1.5px solid var(--line-2); border-radius: 999px; background: var(--panel);
-            font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer;
-            transition: border-color 0.2s, color 0.2s, background-color 0.2s;
-        }
-        .btn:hover { border-color: var(--teal); color: var(--teal-ink); }
-        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-        .btn:disabled:hover { border-color: var(--line-2); color: inherit; }
-        .btn.small { min-height: 30px; padding: 0 12px; font-size: 12px; }
-        .btn.ghost { border-color: transparent; background: none; color: var(--dim); }
-        .link { padding: 0; border: 0; background: none; cursor: pointer; font: 600 12.5px var(--body); color: var(--teal-ink); }
-        .link:hover { text-decoration: underline; text-underline-offset: 3px; }
-
-        /* Tuiles de format */
-        .tiles { display: grid; gap: 14px; }
-        .tile-group { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: start; }
-        .tile-group > span { padding-top: 11px; font-size: 12px; font-weight: 600; color: var(--faint); }
-        .tile-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 8px; }
-        .tile { position: relative; display: block; cursor: pointer; }
-        .tile input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
-        .tile span {
-            display: block; height: 100%; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 14px;
-            background: var(--panel); transition: border-color 0.2s, background-color 0.2s, transform 0.2s;
-        }
-        .tile b { display: block; font-family: var(--display); font-size: 14.5px; font-weight: 600; }
-        .tile small { display: block; font-size: 11.5px; line-height: 1.35; color: var(--faint); }
-        .tile:hover span { border-color: var(--line-2); transform: translateY(-1px); }
-        .tile input:checked + span { border-color: var(--teal); background: var(--teal-soft); }
-        .tile input:checked + span b { color: var(--teal-ink); }
-        .tile input:checked + span b::after { content: " ♪"; color: var(--pink); }
-        .tile input:focus-visible + span { outline: 2px solid var(--pink); outline-offset: 2px; }
-
-        .toggle { display: flex; align-items: flex-start; gap: 12px; padding: 8px 0; cursor: pointer; }
-        .toggle:first-of-type { margin-top: 8px; }
-        .toggle input {
-            appearance: none; position: relative; flex: none; width: 36px; height: 22px; margin: 0;
-            border-radius: 11px; background: var(--line-2); cursor: pointer; transition: background-color 0.2s;
-        }
-        .toggle input::after {
-            content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%;
-            background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18); transition: transform 0.2s;
-        }
-        .toggle input:checked { background: var(--teal); }
-        .toggle input:checked::after { transform: translateX(14px); }
-        .toggle small { display: block; font-size: 12px; color: var(--faint); }
-        #batchNameWrap { margin: 0 0 4px 48px; }
-
-        .plan { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
-        .plan:empty { display: none; }
-        .plan li { display: grid; grid-template-columns: auto auto minmax(0, 1fr); gap: 8px; align-items: baseline; color: var(--dim); }
-        .plan .to { color: var(--teal); }
-        .plan .dest { font-family: var(--mono); font-size: 12px; color: var(--text); word-break: break-all; }
-        .plan li.bad { display: block; color: var(--amber); }
-
-        details.adv { border-bottom: 1px solid var(--line); }
-        .adv > summary {
-            display: flex; align-items: center; gap: 10px; padding: 16px 24px; list-style: none; cursor: pointer; user-select: none;
-            font-family: var(--display); font-size: 14px; font-weight: 600; color: var(--dim);
-        }
-        .adv > summary::-webkit-details-marker { display: none; }
-        .adv > summary::before {
-            content: ""; width: 7px; height: 7px; border-right: 2px solid var(--teal); border-bottom: 2px solid var(--teal);
-            border-radius: 1px; transform: rotate(-45deg); transition: transform 0.2s;
-        }
-        .adv[open] > summary::before { transform: rotate(45deg); }
-        .adv > summary:hover { color: var(--text); }
-        .adv .inner { display: grid; gap: 22px; padding: 0 24px 22px; }
-        .adv .toggle:first-of-type { margin-top: 0; }
-        .cmd {
-            max-height: 200px; margin: 0; overflow: auto; padding: 10px 14px;
-            border-radius: var(--r); background: var(--ground);
-            font: 12px/1.6 var(--mono); color: var(--teal-ink); white-space: pre-wrap; word-break: break-all;
-        }
-        .bookmarklet {
-            display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px;
-            border: 1.5px dashed var(--teal); border-radius: 999px; background: var(--teal-soft);
-            color: var(--teal-ink); font-size: 13px; font-weight: 600; text-decoration: none; cursor: grab;
-        }
-
-        .actionbar { position: sticky; bottom: 0; padding: 16px 24px 20px; background: var(--panel); border-radius: 0 0 20px 20px; }
-        .go {
-            display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px;
-            border: 0; border-radius: 999px; background: var(--teal-btn); color: #fff; cursor: pointer;
-            font-family: var(--display); font-size: 16px; font-weight: 700;
-            box-shadow: 0 6px 18px rgba(31, 168, 158, 0.32); transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .go:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(31, 168, 158, 0.4); }
-        .go:active { transform: none; }
-        .go:disabled { background: var(--raised); color: var(--faint); box-shadow: none; transform: none; cursor: not-allowed; }
-        .go kbd { font: 400 11px var(--body); opacity: 0.8; }
-
-        /* ---------- Convertisseur : liste de fichiers et réglages ---------- */
-        .count-pill {
-            display: inline-block; min-width: 20px; margin-left: 8px; padding: 0 7px; border-radius: 999px;
-            background: var(--teal-soft); color: var(--teal-ink); font-size: 12px; font-weight: 700; text-align: center;
-        }
-        .count-pill:empty { display: none; }
-        .files { display: grid; gap: 6px; max-height: 300px; margin: 0 0 10px; padding: 0; overflow: auto; list-style: none; }
-        .files:empty { display: none; }
-        .file {
-            display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
-            padding: 8px 6px 8px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--ground);
-        }
-        .file.bad { border-color: color-mix(in srgb, var(--coral) 45%, transparent); }
-        .file-name { overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
-        .file-meta { overflow: hidden; font-size: 12px; color: var(--faint); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-        .file.bad .file-meta { color: var(--coral); }
-        .file-remove {
-            width: 30px; height: 30px; border: 0; border-radius: 50%; background: none; cursor: pointer;
-            color: var(--faint); font-size: 18px; line-height: 1;
-        }
-        .file-remove:hover { background: var(--pink-soft); color: var(--pink-ink); }
-        .settings { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px 14px; }
-        .setting { display: grid; gap: 5px; font-size: 12.5px; font-weight: 600; color: var(--dim); }
-        .setting .field { padding: 8px 12px; font-size: 13px; font-weight: 400; }
-        .setting select.field { padding-right: 32px; background-position: right 12px center; }
-        .plan li > span:first-child { max-width: 32ch; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-        .plan li.more { display: block; color: var(--faint); }
-
-        /* ---------- File d'attente ---------- */
-        .queue { position: sticky; top: 80px; display: flex; flex-direction: column; max-height: calc(100vh - 104px); }
-        .queue-head { display: flex; align-items: center; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--line); }
-        .queue-head .eyebrow { margin: 0; white-space: nowrap; }
-        .count { min-width: 0; overflow: hidden; font-size: 12px; color: var(--faint); white-space: nowrap; text-overflow: ellipsis; }
-        .queue-head .btn { margin-left: auto; }
-        .jobs { overflow: auto; }
-        .empty { padding: 40px 24px 44px; text-align: center; color: var(--faint); }
-        .empty img { display: block; width: 48px; height: 48px; margin: 0 auto 12px; image-rendering: pixelated; }
-        .empty b { display: block; margin-bottom: 2px; font-family: var(--display); font-size: 15px; font-weight: 600; color: var(--dim); }
-
-        .job { padding: 16px 22px; border-bottom: 1px solid var(--line); }
-        .job:last-child { border-bottom: 0; }
-        .job-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start; }
-        .tally {
-            min-width: 76px; margin-top: 1px; padding: 2px 10px; border-radius: 999px;
-            background: var(--raised); color: var(--dim);
-            font-size: 11.5px; font-weight: 700; text-align: center; white-space: nowrap;
-        }
-        .job[data-status="running"] .tally { background: var(--pink-soft); color: var(--pink-ink); }
-        .job[data-status="done"] .tally { background: var(--teal-soft); color: var(--teal-ink); }
-        .job[data-status="partial"] .tally { background: color-mix(in srgb, var(--amber) 14%, transparent); color: var(--amber); }
-        .job[data-status="error"] .tally { background: color-mix(in srgb, var(--coral) 12%, transparent); color: var(--coral); }
-        .job-title { overflow: hidden; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; }
-        .job-dir { overflow: hidden; font: 12px var(--mono); color: var(--faint); white-space: nowrap; text-overflow: ellipsis; }
-        .job-no { font: 12px var(--mono); color: var(--faint); }
-
-        /* Progression : turquoise vers rose, rayures qui défilent pendant le travail. */
-        .scrub { position: relative; height: 8px; margin: 12px 0 6px; overflow: hidden; border-radius: 999px; background: var(--raised); }
-        .scrub i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--teal); transition: width 0.6s ease; }
-        .job[data-status="running"] .scrub i {
-            background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.3) 0 5px, transparent 5px 10px) 0 0 / 14px 14px,
-                        linear-gradient(90deg, var(--teal), var(--pink));
-            animation: stripes 0.9s linear infinite;
-        }
-        .job[data-status="partial"] .scrub i { background: var(--amber); }
-        .job[data-status="error"] .scrub i, .job[data-status="canceled"] .scrub i { background: var(--line-2); }
-        .job[data-status="running"] .scrub.indet i { width: 30%; animation: sweep 1.4s ease-in-out infinite, stripes 0.9s linear infinite; }
-        @keyframes stripes { to { background-position: 14px 0, 0 0; } }
-        @keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
-        .job-meta { font: 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; }
-        .job-err { margin-top: 6px; font-size: 12px; color: var(--coral); word-break: break-word; }
-        .job-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-        .job-log {
-            max-height: 220px; margin: 8px 0 0; overflow: auto; padding: 8px 12px; border-radius: var(--r);
-            background: var(--ground); font: 11.5px/1.5 var(--mono); color: var(--dim); white-space: pre-wrap; word-break: break-all;
-        }
-
-        .foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; padding: 4px 24px 24px; font-size: 12px; color: var(--faint); }
-        .foot .heart { color: var(--pink); }
-        .foot .link { font-weight: 400; color: var(--faint); }
-
-        .toast {
-            position: fixed; left: 50%; bottom: 24px; z-index: 20; max-width: 90vw; padding: 10px 18px;
-            border: 1.5px solid var(--teal); border-radius: 16px; background: var(--panel); color: var(--text);
-            box-shadow: var(--shadow); font-size: 13px;
-            opacity: 0; pointer-events: none; transform: translate(-50%, 12px); transition: opacity 0.25s, transform 0.25s;
-        }
-        .toast.show { opacity: 1; transform: translate(-50%, 0); }
-        .toast.err { border-color: var(--coral); }
-
-        @media (max-width: 960px) {
-            .deck { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; }
-            .queue { position: static; max-height: none; }
-            .banner { width: calc(100% - 32px); }
-        }
-        @media (max-width: 640px) {
-            .top { position: static; flex-wrap: wrap; gap: 10px 16px; padding: 10px 16px; }
-            .tabs { order: 3; width: 100%; }
-            .tab { flex: 1; }
-            .section, .actionbar, .adv > summary, .adv .inner { padding-left: 16px; padding-right: 16px; }
-            .tile-group { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-            .tile-group > span { padding-top: 0; }
-            .row { flex-wrap: wrap; }
-            .row .field { flex-basis: 100%; }
-            #batchNameWrap { margin-left: 0; }
-            .go kbd { display: none; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-            .scrub.indet i { width: 100%; opacity: 0.4; }
-        }
-    </style>
+    <title>RENARD.mp3</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="ui/pixel-font.css">
+    <link rel="stylesheet" href="ui/renard.css">
 </head>
 <body>
 
-<header class="top">
-    <div class="brand"><img src="/favicon.ico" alt="" width="32" height="32"><span class="wordmark">yt-dlp <b>Studio</b></span></div>
-    <div class="tabs" id="tabs" role="tablist" aria-label="Outil">
-        <button class="tab" role="tab" id="tabDl" aria-controls="panelDl" aria-selected="true" type="button">Télécharger</button>
-        <button class="tab" role="tab" id="tabCv" aria-controls="panelCv" aria-selected="false" type="button">Convertir</button>
+<canvas id="scene" aria-hidden="true"></canvas>
+
+<div id="app">
+    <!-- Barre de titre : uniquement dans l'app de bureau (WebView2). -->
+    <div id="titlebar" hidden>
+        <img class="tb-icon" src="/favicon.ico" alt="" width="16" height="16">
+        <span class="tb-name">RENARD<b>.mp3</b></span>
+        <div class="tb-drag"></div>
+        <div class="tb-btns"></div>
     </div>
-    <div class="status" id="statusPill" role="status"><i></i><span id="statusText">Connexion…</span></div>
-</header>
 
-<div class="banner err" id="fileBanner" hidden>Ouvrez cette page avec <b>launch.bat</b> ou le raccourci « yt-dlp Studio » : c'est lui qui lance les téléchargements.</div>
-<div class="banner" id="updateBanner" hidden>Vérification de yt-dlp, Deno et FFmpeg. La file démarre dès la fin.</div>
-
-<main class="deck">
-    <section class="panel" id="mainCard" aria-label="Réglages">
-
-        <!-- ================= TÉLÉCHARGER ================= -->
-        <div id="panelDl" role="tabpanel" aria-labelledby="tabDl">
-            <div class="section">
-                <div class="eyebrow"><label for="url">Liens</label><button class="link" type="button" id="pasteBtn">Coller le presse-papiers</button></div>
-                <textarea id="url" rows="4" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.youtube.com/playlist?list=…"></textarea>
-                <p class="hint">Un lien par ligne. Vous pouvez aussi glisser un lien ou un onglet sur ce panneau.</p>
-                <ul class="plan" id="plan" aria-live="polite"></ul>
-            </div>
-
-            <div class="section">
-                <div class="eyebrow" id="profileLabel">Format</div>
-                <div class="tiles" id="profiles" role="radiogroup" aria-labelledby="profileLabel"></div>
-                <p class="hint" id="qualityHint"></p>
-            </div>
-
-            <div class="section">
-                <div class="eyebrow"><label for="dest">Destination</label><button class="link" type="button" id="resetDestBtn">Dossier par défaut</button></div>
-                <div class="row">
-                    <input class="field path" type="text" id="dest" spellcheck="false" placeholder="D:\Vidéos">
-                    <button class="btn" type="button" id="pickBtn">Choisir…</button>
-                    <button class="btn" type="button" id="openDestBtn">Ouvrir</button>
-                </div>
-                <label class="toggle"><input type="checkbox" id="groupBatch"><span>Ranger plusieurs liens dans un sous-dossier<small>Les playlists et les chaînes ont toujours leur propre dossier, numéroté dans l'ordre.</small></span></label>
-                <div id="batchNameWrap"><input class="field" type="text" id="batchName" aria-label="Nom du sous-dossier" placeholder="Nom du sous-dossier (par défaut : Lot date heure)"></div>
-                <label class="toggle"><input type="checkbox" id="playlist"><span>Prendre la playlist entière<small>Pour un lien vidéo qui contient aussi <code>&amp;list=…</code></small></span></label>
-            </div>
-
-            <details class="adv">
-                <summary>Options avancées</summary>
-                <div class="inner">
-                    <div>
-                        <label class="toggle"><input type="checkbox" id="cookies"><span>Utiliser les cookies du navigateur<small>À laisser activé : sans cookies, YouTube renvoie une erreur 403 ou des flux protégés.</small></span></label>
-                        <select class="field" id="cookiesBrowser" aria-label="Navigateur des cookies">
-                            <option value="firefox">Firefox (recommandé)</option>
-                            <option value="chrome">Chrome</option>
-                            <option value="edge">Edge</option>
-                            <option value="brave">Brave</option>
-                            <option value="chromium">Chromium</option>
-                            <option value="opera">Opera</option>
-                            <option value="vivaldi">Vivaldi</option>
-                        </select>
-                        <p class="hint"><b>Firefox est le choix fiable sous Windows.</b> Chrome, Edge et Brave chiffrent leurs cookies : yt-dlp ne peut plus les lire.</p>
-                    </div>
-                    <div>
-                        <div class="eyebrow"><label for="ffmpeg">Chemin FFmpeg</label><span class="aside">facultatif, sert aussi aux conversions</span></div>
-                        <input class="field path" type="text" id="ffmpeg" spellcheck="false" placeholder="Vide = FFmpeg inclus dans bin">
-                    </div>
-                    <div>
-                        <div class="eyebrow">Favori « Envoyer vers Studio »</div>
-                        <a class="bookmarklet" id="bookmarklet" href="#">yt-dlp Studio</a>
-                        <p class="hint">Glissez ce bouton dans la barre de favoris. Sur une page vidéo, cliquez dessus : le lien arrive ici.</p>
-                        <label class="toggle"><input type="checkbox" id="autoStart"><span>Télécharger dès qu'un lien arrive du favori</span></label>
-                    </div>
-                    <div>
-                        <div class="eyebrow">Commande équivalente<button class="link" type="button" id="copyCmdBtn">Copier</button></div>
-                        <pre class="cmd" id="output">—</pre>
-                        <p class="hint">Mode manuel : collez-la dans <code>terminal.bat</code>.</p>
-                    </div>
-                </div>
-            </details>
-
-            <div class="actionbar"><button class="go" id="goBtn" type="button" disabled>Télécharger <kbd>Ctrl + Entrée</kbd></button></div>
+    <header class="top">
+        <div class="brand"><img src="/favicon.ico" alt="" width="32" height="32"><span class="wordmark">RENARD<b>.mp3</b></span></div>
+        <div class="tabs" id="tabs" role="tablist" aria-label="Outil">
+            <button class="tab" role="tab" id="tabDl" aria-controls="panelDl" aria-selected="true" type="button">Télécharger</button>
+            <button class="tab" role="tab" id="tabCv" aria-controls="panelCv" aria-selected="false" type="button">Convertir</button>
         </div>
-
-        <!-- ================= CONVERTIR ================= -->
-        <div id="panelCv" role="tabpanel" aria-labelledby="tabCv" hidden>
-            <div class="section">
-                <div class="eyebrow"><span>Fichiers<span class="count-pill" id="cvCount"></span></span><button class="link" type="button" id="cvClearBtn" hidden>Tout retirer</button></div>
-                <ul class="files" id="cvFiles" aria-live="polite"></ul>
-                <div class="row">
-                    <input class="field path" type="text" id="cvInput" spellcheck="false" placeholder="Collez un chemin : D:\Vidéos\clip.mov" aria-label="Chemin du fichier à ajouter">
-                    <button class="btn" type="button" id="cvAddBtn">Ajouter</button>
-                    <button class="btn" type="button" id="cvPickBtn">Parcourir…</button>
+        <div class="top-right">
+            <div class="status" id="statusPill" role="status"><i></i><span id="statusText">Connexion…</span></div>
+            <div class="menu-wrap">
+                <button class="icon-btn" type="button" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menu" title="Réglages">
+                    <svg viewBox="0 0 8 8" aria-hidden="true"><path fill="currentColor" d="M3 0h2v1H3zM1 1h1v1H1zM6 1h1v1H6zM2 1h4v1H2zM1 2h6v4H1zM0 3h1v2H0zM7 3h1v2H7zM2 6h4v1H2zM1 6h1v1H1zM6 6h1v1H6zM3 7h2v1H3z"/><path fill="var(--panel-solid)" d="M3 3h2v2H3z"/></svg>
+                </button>
+                <div class="menu" id="menu" hidden>
+                    <h3>Thème</h3>
+                    <div class="seg" role="group" aria-label="Thème">
+                        <button type="button" data-theme-choice="auto">ciel</button>
+                        <button type="button" data-theme-choice="light">jour</button>
+                        <button type="button" data-theme-choice="dark">nuit</button>
+                    </div>
+                    <p class="hint" style="margin:0">« ciel » suit l'heure : crème le jour, bleu nuit le soir.</p>
+                    <button class="btn small" type="button" id="quitBtn">Arrêter le serveur</button>
+                    <div class="credits">made with <span class="heart">♥</span> by elisalien — pour Lucien<span id="appVersion"></span></div>
                 </div>
-                <p class="hint">Plusieurs fichiers : sélection multiple dans « Parcourir… », ou <b>Maj + clic droit › Copier en tant que chemin</b> dans l'Explorateur, puis collez ici. Un téléchargement terminé s'envoie aussi ici depuis la file.</p>
             </div>
+        </div>
+    </header>
 
-            <div class="section">
-                <div class="eyebrow" id="cvPresetLabel">Format de sortie</div>
-                <div class="tiles" id="cvPresets" role="radiogroup" aria-labelledby="cvPresetLabel"></div>
-                <p class="hint" id="cvHint"></p>
-            </div>
+    <div class="banner err" id="fileBanner" hidden>Ouvrez cette page avec <b>launch.bat</b> ou l'app <b>RENARD.mp3</b> : c'est elle qui lance les téléchargements.</div>
+    <div class="banner" id="updateBanner" hidden>Vérification de yt-dlp, Deno et FFmpeg. La file démarre dès la fin.</div>
+    <div class="banner ok" id="appBanner" role="status" hidden></div>
 
-            <div class="section">
-                <div class="eyebrow">Réglages</div>
-                <div class="settings">
-                    <label class="setting" id="cvQualityWrap">Qualité
-                        <select class="field" id="cvQuality">
-                            <option value="high">Haute</option>
-                            <option value="balanced">Équilibrée</option>
-                            <option value="small">Légère</option>
-                        </select>
-                    </label>
-                    <label class="setting" data-visual>Largeur max
-                        <select class="field" id="cvScale">
-                            <option value="">Originale</option>
-                            <option value="3840">3840 px · 4K</option>
-                            <option value="2560">2560 px · 2K</option>
-                            <option value="1920">1920 px · 1080p</option>
-                            <option value="1280">1280 px · 720p</option>
-                            <option value="854">854 px · 480p</option>
-                            <option value="640">640 px</option>
-                            <option value="480">480 px</option>
-                        </select>
-                    </label>
-                    <label class="setting" data-visual>Images par seconde
-                        <select class="field" id="cvFps">
-                            <option value="">Originales</option>
-                            <option value="60">60</option>
-                            <option value="50">50</option>
-                            <option value="30">30</option>
-                            <option value="25">25</option>
-                            <option value="24">24</option>
-                            <option value="15">15</option>
-                            <option value="12">12</option>
-                        </select>
-                    </label>
-                    <label class="setting" data-visual>Rotation
-                        <select class="field" id="cvRotate">
-                            <option value="">Aucune</option>
-                            <option value="cw">90° horaire</option>
-                            <option value="ccw">90° anti-horaire</option>
-                            <option value="180">180°</option>
-                            <option value="hflip">Miroir horizontal</option>
-                        </select>
-                    </label>
-                    <label class="setting" id="cvAudioWrap">Son
-                        <select class="field" id="cvAudio">
-                            <option value="keep">Garder</option>
-                            <option value="norm">Normaliser le volume</option>
-                            <option value="mute">Supprimer</option>
-                        </select>
-                    </label>
-                    <label class="setting">Début
-                        <input class="field" type="text" id="cvStart" inputmode="decimal" spellcheck="false" placeholder="0:00">
-                    </label>
-                    <label class="setting">Fin
-                        <input class="field" type="text" id="cvEnd" inputmode="decimal" spellcheck="false" placeholder="Jusqu'au bout">
-                    </label>
+    <main class="deck">
+        <section class="panel" id="mainCard" aria-label="Réglages">
+
+            <!-- ================= TÉLÉCHARGER ================= -->
+            <div id="panelDl" role="tabpanel" aria-labelledby="tabDl">
+                <div class="section">
+                    <div class="eyebrow"><label for="url">Liens</label><button class="link" type="button" id="pasteBtn">Coller le presse-papiers</button></div>
+                    <textarea id="url" rows="3" spellcheck="false" placeholder="https://www.youtube.com/watch?v=…&#10;https://www.youtube.com/playlist?list=…"></textarea>
+                    <p class="hint more-only">Un lien par ligne. Vous pouvez aussi glisser un lien ou un onglet sur ce panneau.</p>
+                    <ul class="plan" id="plan" aria-live="polite"></ul>
                 </div>
-                <p class="hint">Début et fin : <b>90</b>, <b>1:30</b> ou <b>01:02:03</b>. La largeur ne fait que réduire. « Normaliser » donne un volume homogène (−14 LUFS).</p>
-            </div>
 
-            <div class="section">
-                <div class="eyebrow"><label for="cvOutDir">Dossier de sortie</label><button class="link" type="button" id="cvOutResetBtn">À côté des sources</button></div>
-                <div class="row">
-                    <input class="field path" type="text" id="cvOutDir" spellcheck="false" placeholder="Vide = à côté de chaque fichier source">
-                    <button class="btn" type="button" id="cvOutPickBtn">Choisir…</button>
-                </div>
-                <label class="toggle"><input type="checkbox" id="cvOverwrite"><span>Remplacer les fichiers produits s'ils existent déjà</span></label>
-                <ul class="plan" id="cvPlan" aria-live="polite"></ul>
-            </div>
-
-            <details class="adv">
-                <summary>Commande équivalente</summary>
-                <div class="inner">
-                    <div>
-                        <div class="eyebrow"><span class="aside">Premier fichier de la liste</span><button class="link" type="button" id="cvCopyBtn">Copier</button></div>
-                        <pre class="cmd" id="cvOutput">—</pre>
+                <!-- Mode simple : deux gros boutons. -->
+                <div class="section simple-only">
+                    <div class="quick">
+                        <button class="big video" type="button" id="quickVideo" disabled><span class="em" aria-hidden="true">🎬</span><span>Vidéo<small>MP4 compatible</small></span></button>
+                        <button class="big mp3" type="button" id="quickMp3" disabled><span class="em" aria-hidden="true">🎵</span><span>MP3<small>juste le son</small></span></button>
+                    </div>
+                    <div class="simple-foot">
+                        <button class="link simple-dest" type="button" id="simpleDest"></button>
+                        <button class="btn small more-btn" type="button" id="moreBtn" aria-expanded="false">plus…</button>
                     </div>
                 </div>
-            </details>
 
-            <div class="actionbar"><button class="go" id="cvGoBtn" type="button" disabled><span id="cvGoText">Convertir</span> <kbd>Ctrl + Entrée</kbd></button></div>
-        </div>
-    </section>
+                <div class="section more-only">
+                    <div class="eyebrow"><span id="profileLabel">Format</span><button class="link" type="button" id="lessBtn">mode simple</button></div>
+                    <div class="tiles" id="profiles" role="radiogroup" aria-labelledby="profileLabel"></div>
+                    <p class="hint" id="qualityHint"></p>
+                </div>
 
-    <!-- ================= FILE D'ATTENTE ================= -->
-    <section class="panel queue" id="queueCard" aria-label="File d'attente">
-        <div class="queue-head">
-            <h2 class="eyebrow">File d'attente</h2>
-            <span class="count" id="queueCount"></span>
-            <button class="btn small" type="button" id="clearBtn" disabled>Effacer les terminés</button>
-        </div>
-        <div class="jobs" id="jobs"></div>
-    </section>
-</main>
+                <div class="section more-only">
+                    <div class="eyebrow"><label for="dest">Destination</label><button class="link" type="button" id="resetDestBtn">Dossier par défaut</button></div>
+                    <div class="row">
+                        <input class="field path" type="text" id="dest" spellcheck="false" placeholder="D:\Vidéos">
+                        <button class="btn" type="button" id="pickBtn">Choisir…</button>
+                        <button class="btn" type="button" id="openDestBtn">Ouvrir</button>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="groupBatch"><span>Ranger plusieurs liens dans un sous-dossier<small>Les playlists et les chaînes ont toujours leur propre dossier, numéroté dans l'ordre.</small></span></label>
+                    <div id="batchNameWrap"><input class="field" type="text" id="batchName" aria-label="Nom du sous-dossier" placeholder="Nom du sous-dossier (par défaut : Lot date heure)"></div>
+                    <label class="toggle"><input type="checkbox" id="playlist"><span>Prendre la playlist entière<small>Pour un lien vidéo qui contient aussi <code>&amp;list=…</code></small></span></label>
+                </div>
 
-<footer class="foot">
-    <span>made with <span class="heart">♥</span> by elisalien — pour Lucien</span>
-    <button class="link" type="button" id="quitBtn">Arrêter le serveur</button>
-</footer>
+                <details class="adv more-only">
+                    <summary>Options avancées</summary>
+                    <div class="inner">
+                        <div>
+                            <label class="toggle"><input type="checkbox" id="cookies"><span>Utiliser les cookies du navigateur<small>À laisser activé : sans cookies, YouTube renvoie une erreur 403 ou des flux protégés.</small></span></label>
+                            <select class="field" id="cookiesBrowser" aria-label="Navigateur des cookies">
+                                <option value="firefox">Firefox (recommandé)</option>
+                                <option value="chrome">Chrome</option>
+                                <option value="edge">Edge</option>
+                                <option value="brave">Brave</option>
+                                <option value="chromium">Chromium</option>
+                                <option value="opera">Opera</option>
+                                <option value="vivaldi">Vivaldi</option>
+                            </select>
+                            <p class="hint"><b>Firefox est le choix fiable sous Windows.</b> Chrome, Edge et Brave chiffrent leurs cookies : yt-dlp ne peut plus les lire.</p>
+                        </div>
+                        <div>
+                            <div class="eyebrow"><label for="ffmpeg">Chemin FFmpeg</label><span class="aside">facultatif</span></div>
+                            <input class="field path" type="text" id="ffmpeg" spellcheck="false" placeholder="Vide = FFmpeg inclus dans bin">
+                        </div>
+                        <div>
+                            <div class="eyebrow">Favori « Envoyer au renard »</div>
+                            <a class="bookmarklet" id="bookmarklet" href="#">♥ RENARD.mp3</a>
+                            <p class="hint">Glissez ce bouton dans la barre de favoris. Sur une page vidéo, cliquez dessus : le lien arrive ici.</p>
+                            <label class="toggle"><input type="checkbox" id="autoStart"><span>Télécharger dès qu'un lien arrive du favori</span></label>
+                        </div>
+                        <div>
+                            <div class="eyebrow"><span>Commande équivalente</span><button class="link" type="button" id="copyCmdBtn">Copier</button></div>
+                            <pre class="cmd" id="output">—</pre>
+                            <p class="hint">Mode manuel : collez-la dans <code>terminal.bat</code>.</p>
+                        </div>
+                    </div>
+                </details>
 
+                <div class="actionbar more-only"><button class="go" id="goBtn" type="button" disabled>Télécharger <kbd>Ctrl + Entrée</kbd></button></div>
+            </div>
+
+            <!-- ================= CONVERTIR ================= -->
+            <div id="panelCv" role="tabpanel" aria-labelledby="tabCv" hidden>
+                <div class="section">
+                    <div class="eyebrow"><span>Fichiers<span class="count-pill" id="cvCount"></span></span><button class="link" type="button" id="cvClearBtn" hidden>Tout retirer</button></div>
+                    <ul class="files" id="cvFiles" aria-live="polite"></ul>
+                    <div class="row">
+                        <input class="field path" type="text" id="cvInput" spellcheck="false" placeholder="Collez un chemin : D:\Vidéos\clip.mov" aria-label="Chemin du fichier à ajouter">
+                        <button class="btn" type="button" id="cvAddBtn">Ajouter</button>
+                        <button class="btn" type="button" id="cvPickBtn">Parcourir…</button>
+                    </div>
+                    <p class="hint">Plusieurs fichiers : sélection multiple dans « Parcourir… », ou <b>Maj + clic droit › Copier en tant que chemin</b> dans l'Explorateur, puis collez ici. Un téléchargement terminé s'envoie aussi ici depuis la file.</p>
+                </div>
+
+                <div class="section">
+                    <div class="eyebrow" id="cvPresetLabel">Format de sortie</div>
+                    <div class="tiles" id="cvPresets" role="radiogroup" aria-labelledby="cvPresetLabel"></div>
+                    <p class="hint" id="cvHint"></p>
+                </div>
+
+                <div class="section">
+                    <div class="eyebrow">Réglages</div>
+                    <div class="settings">
+                        <label class="setting" id="cvQualityWrap">Qualité
+                            <select class="field" id="cvQuality">
+                                <option value="high">Haute</option>
+                                <option value="balanced">Équilibrée</option>
+                                <option value="small">Légère</option>
+                            </select>
+                        </label>
+                        <label class="setting" data-visual>Largeur max
+                            <select class="field" id="cvScale">
+                                <option value="">Originale</option>
+                                <option value="3840">3840 px · 4K</option>
+                                <option value="2560">2560 px · 2K</option>
+                                <option value="1920">1920 px · 1080p</option>
+                                <option value="1280">1280 px · 720p</option>
+                                <option value="854">854 px · 480p</option>
+                                <option value="640">640 px</option>
+                                <option value="480">480 px</option>
+                            </select>
+                        </label>
+                        <label class="setting" data-visual>Images par seconde
+                            <select class="field" id="cvFps">
+                                <option value="">Originales</option>
+                                <option value="60">60</option>
+                                <option value="50">50</option>
+                                <option value="30">30</option>
+                                <option value="25">25</option>
+                                <option value="24">24</option>
+                                <option value="15">15</option>
+                                <option value="12">12</option>
+                            </select>
+                        </label>
+                        <label class="setting" data-visual>Rotation
+                            <select class="field" id="cvRotate">
+                                <option value="">Aucune</option>
+                                <option value="cw">90° horaire</option>
+                                <option value="ccw">90° anti-horaire</option>
+                                <option value="180">180°</option>
+                                <option value="hflip">Miroir horizontal</option>
+                            </select>
+                        </label>
+                        <label class="setting" id="cvAudioWrap">Son
+                            <select class="field" id="cvAudio">
+                                <option value="keep">Garder</option>
+                                <option value="norm">Normaliser le volume</option>
+                                <option value="mute">Supprimer</option>
+                            </select>
+                        </label>
+                        <label class="setting">Début
+                            <input class="field" type="text" id="cvStart" inputmode="decimal" spellcheck="false" placeholder="0:00">
+                        </label>
+                        <label class="setting">Fin
+                            <input class="field" type="text" id="cvEnd" inputmode="decimal" spellcheck="false" placeholder="Jusqu'au bout">
+                        </label>
+                    </div>
+                    <p class="hint">Début et fin : <b>90</b>, <b>1:30</b> ou <b>01:02:03</b>. La largeur ne fait que réduire. « Normaliser » donne un volume homogène (−14 LUFS).</p>
+                </div>
+
+                <div class="section">
+                    <div class="eyebrow"><label for="cvOutDir">Dossier de sortie</label><button class="link" type="button" id="cvOutResetBtn">À côté des sources</button></div>
+                    <div class="row">
+                        <input class="field path" type="text" id="cvOutDir" spellcheck="false" placeholder="Vide = à côté de chaque fichier source">
+                        <button class="btn" type="button" id="cvOutPickBtn">Choisir…</button>
+                    </div>
+                    <label class="toggle"><input type="checkbox" id="cvOverwrite"><span>Remplacer les fichiers produits s'ils existent déjà</span></label>
+                    <ul class="plan" id="cvPlan" aria-live="polite"></ul>
+                </div>
+
+                <details class="adv">
+                    <summary>Commande équivalente</summary>
+                    <div class="inner">
+                        <div>
+                            <div class="eyebrow"><span class="aside">Premier fichier de la liste</span><button class="link" type="button" id="cvCopyBtn">Copier</button></div>
+                            <pre class="cmd" id="cvOutput">—</pre>
+                        </div>
+                    </div>
+                </details>
+
+                <div class="actionbar"><button class="go" id="cvGoBtn" type="button" disabled><span id="cvGoText">Convertir</span> <kbd>Ctrl + Entrée</kbd></button></div>
+            </div>
+        </section>
+
+        <!-- ================= FILE D'ATTENTE ================= -->
+        <section class="panel queue" id="queueCard" aria-label="File d'attente">
+            <div class="queue-head">
+                <h2 class="eyebrow">File d'attente</h2>
+                <span class="count" id="queueCount"></span>
+                <button class="btn small" type="button" id="clearBtn" disabled>Effacer les terminés</button>
+            </div>
+            <div class="jobs" id="jobs"></div>
+        </section>
+    </main>
+
+    <div id="hillspace"></div>
+</div>
+
+<div class="bubble" id="foxBubble" role="status" aria-live="polite" hidden></div>
+<button class="sign" id="foxSign" type="button" hidden></button>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="ui/sound.js"></script>
+<script src="ui/scene.js"></script>
+<script src="ui/shell.js"></script>
 <script>
     "use strict";
 
     /* =========================================================================
-       Cette page parle au serveur local server.ps1 (lancé par launch.bat).
+       Cette page parle au serveur local server.ps1 (lancé par launch.bat ou par
+       l'app de bureau RENARD.mp3.exe, qui l'affiche dans WebView2).
        Le serveur construit lui-même les arguments yt-dlp / ffmpeg à partir
        d'options en liste blanche : la page n'envoie jamais de commande brute.
        Chaque appel porte le jeton injecté dans la balise meta ci-dessus.
@@ -563,6 +270,9 @@
     const TOKEN = document.querySelector('meta[name="studio-token"]').content;
     const SERVED = /^https?:$/.test(location.protocol) && /^[0-9a-f]{32}$/.test(TOKEN);
     const $ = id => document.getElementById(id);
+    const Shell = window.RenardShell || { DESKTOP: false, post() {}, on() {}, ask: t => Promise.resolve(confirm(t)) };
+    const Scene = window.RenardScene || { setMood() {}, celebrate() {}, sad() {}, alert() {}, afterDone() {}, showSign() {}, say() {} };
+    const DESKTOP = Shell.DESKTOP;
 
     const PROFILES = [
         { label: "Vidéo", items: [
@@ -667,6 +377,13 @@
 
     function setText(node, text) {
         if (node.textContent !== text) node.textContent = text;
+    }
+
+    // Les deux gros boutons du mode simple suivent le bouton Télécharger.
+    function setGo(off) {
+        $("goBtn").disabled = off;
+        $("quickVideo").disabled = off;
+        $("quickMp3").disabled = off;
     }
 
     let toastTimer;
@@ -791,8 +508,30 @@
         $("cvOutDir").value = s.convOutDir || "";
         $("cvOverwrite").checked = !!s.convOverwrite;
         syncHints();
+        syncSimpleDest();
         refreshPlan();
         refreshConvert();
+    }
+
+    // Mode simple : rappelle où arrivent les fichiers.
+    function syncSimpleDest() {
+        const d = $("dest").value.trim() || defaultDest;
+        const short = d.split(/[\\/]/).filter(Boolean).slice(-2).join("\\");
+        setText($("simpleDest"), d ? "rangé dans … \\" + short : "");
+        $("simpleDest").title = d ? d + " (cliquer pour ouvrir)" : "";
+    }
+
+    function setMore(on) {
+        document.body.classList.toggle("more", !!on);
+        $("moreBtn").setAttribute("aria-expanded", String(!!on));
+        store("renard-more", on ? "1" : "0");
+        if (!on) setTab("dl");
+    }
+
+    function quick(profile) {
+        setRadio("profile", profile);
+        syncHints();
+        startDownload();
     }
 
     const saveSettings = debounce(() => {
@@ -815,6 +554,8 @@
 
     function onDownloadChange(save) {
         syncHints();
+        syncSimpleDest();
+        Scene.alert(urlLines().length > 0);
         store("ytdlp-draft", $("url").value);
         if (save) saveSettings();
         refreshPlan();
@@ -838,7 +579,7 @@
         if (!online || !urls.length) {
             $("plan").replaceChildren();
             setText($("output"), "—");
-            $("goBtn").disabled = true;
+            setGo(true);
             return;
         }
         try {
@@ -854,11 +595,11 @@
             if (p.rejected.length) items.push(planBad(`${p.rejected.length} ligne(s) ignorée(s) : seuls les liens http(s) sont acceptés.`));
             $("plan").replaceChildren(...items);
             setText($("output"), p.jobs.length ? p.jobs.map(j => j.command).join("\n\n") : "—");
-            $("goBtn").disabled = !!p.error || !p.jobs.length;
+            setGo(!!p.error || !p.jobs.length);
         } catch (e) {
             if (seq !== planSeq) return;
             $("plan").replaceChildren(planBad(e.message));
-            $("goBtn").disabled = true;
+            setGo(true);
         }
     }, 250);
 
@@ -878,7 +619,7 @@
     async function startDownload() {
         const urls = urlLines();
         if (!urls.length || !online) return;
-        $("goBtn").disabled = true;
+        setGo(true);
         try {
             const r = await api("/api/download", { ...options(), urls, batchName: $("batchName").value });
             $("url").value = "";
@@ -964,6 +705,7 @@
 
     async function pickFiles() {
         const button = $("cvPickBtn");
+        Shell.post("fg");
         button.disabled = true;
         toast("Choisissez les fichiers dans la fenêtre Windows (sélection multiple possible).");
         try {
@@ -1024,7 +766,7 @@
 
     /* ------------------------------ commun ------------------------------ */
     function setTab(name) {
-        tab = name === "cv" ? "cv" : "dl";
+        tab = name === "cv" && document.body.classList.contains("more") ? "cv" : "dl";
         for (const [id, panel, key] of [["tabDl", "panelDl", "dl"], ["tabCv", "panelCv", "cv"]]) {
             const on = tab === key;
             $(id).setAttribute("aria-selected", String(on));
@@ -1035,6 +777,7 @@
     }
 
     async function pick(endpoint, input, button, after) {
+        Shell.post("fg");
         button.disabled = true;
         toast("Choisissez dans la fenêtre Windows qui vient de s'ouvrir.");
         try {
@@ -1142,8 +885,8 @@
             views.clear();
             if (!box.querySelector(".empty")) {
                 box.replaceChildren(el("div", { class: "empty" }, el("img", { src: "/favicon.ico", alt: "" }),
-                    el("b", { text: "Rien pour l'instant" }),
-                    "Les téléchargements et les conversions apparaîtront ici."));
+                    el("b", { text: "Rien pour l'instant ♪" }),
+                    "Collez un lien : le renard s'occupe du reste."));
             }
             return;
         }
@@ -1157,6 +900,31 @@
         });
         for (const id of views.keys()) if (!seen.has(id)) views.delete(id);
         if (nodes.length !== box.children.length || nodes.some((n, i) => box.children[i] !== n)) box.replaceChildren(...nodes);
+    }
+
+    // Humeur du renard d'après la file : court pendant un téléchargement (vitesse =
+    // progression), joue pendant une conversion, saute de joie à la fin, oreilles
+    // basses en cas d'échec.
+    const lastStatus = new Map();
+    let jobsSeen = false;
+    function foxFromJobs(list) {
+        let done = false, bad = false;
+        for (const j of list) {
+            const before = lastStatus.get(j.id);
+            if (jobsSeen && before && before !== j.status && (before === "running" || before === "queued")) {
+                if (j.status === "done") done = true;
+                else if (j.status === "error" || j.status === "partial") bad = true;
+            }
+            lastStatus.set(j.id, j.status);
+        }
+        jobsSeen = true;
+        const dl = list.find(j => j.status === "running" && j.kind !== "convert");
+        const cv = list.find(j => j.status === "running" && j.kind === "convert");
+        if (dl) Scene.setMood("download", dl.percent >= 0 ? dl.percent / 100 : 0.3);
+        else if (cv) Scene.setMood("convert");
+        else Scene.setMood("idle");
+        if (done) { Scene.celebrate(); Scene.afterDone(); }
+        else if (bad) Scene.sad();
     }
 
     function setStatus(state, text) {
@@ -1179,7 +947,9 @@
             if (st.jobs) {
                 jobs = st.jobs;
                 renderJobs(jobs);
+                foxFromJobs(jobs);
             }
+            if (st.incoming && st.incoming.length) receiveUrls(st.incoming.join("\n"));
             rev = st.rev;
             if (first) {
                 handleIncomingUrl();
@@ -1194,23 +964,28 @@
             online = false;
             rev = null;
             setStatus("off", e.status === 403 ? "Rechargez la page" : "Serveur arrêté");
-            $("goBtn").disabled = true;
+            setGo(true);
             $("cvGoBtn").disabled = true;
         }
         pollTimer = setTimeout(poll, delay);
     }
 
-    // Lien reçu via le favori : /?url=https://…
+    // Lien reçu via le favori : /?url=https://… (navigateur) ou /send (app de bureau).
     function handleIncomingUrl() {
         const incoming = new URLSearchParams(location.search).get("url");
         if (!incoming) return;
         history.replaceState(null, "", location.pathname);
+        receiveUrls(incoming);
+    }
+
+    function receiveUrls(incoming) {
         if (!addUrls(incoming)) return;
+        Shell.post("focus");
         if (store("ytdlp-autostart") === "1") {
             setTimeout(startDownload, 400);
         } else {
-            toast("Lien reçu : cliquez sur Télécharger");
-            $("goBtn").focus();
+            toast(document.body.classList.contains("more") ? "Lien reçu : cliquez sur Télécharger" : "Lien reçu : Vidéo ou MP3 ?");
+            (document.body.classList.contains("more") ? $("goBtn") : $("quickVideo")).focus();
         }
     }
 
@@ -1231,6 +1006,8 @@
             cvFiles = [];
         }
         $("autoStart").checked = store("ytdlp-autostart") === "1";
+        document.body.classList.toggle("more", store("renard-more") === "1");
+        $("moreBtn").setAttribute("aria-expanded", String(store("renard-more") === "1"));
         setTab(store("ytdlp-tab"));
         syncHints();
         renderFiles();
@@ -1242,7 +1019,11 @@
             return;
         }
 
-        $("bookmarklet").href = `javascript:(function(){window.open('${location.origin}/?url='+encodeURIComponent(location.href),'ytdlpstudio')})()`;
+        // Favori : dans l'app de bureau, le lien passe par /send (petite fenêtre qui se
+        // ferme seule) ; dans le navigateur, il rouvre cet onglet avec ?url=.
+        $("bookmarklet").href = DESKTOP
+            ? `javascript:(function(){window.open('${location.origin}/send?url='+encodeURIComponent(location.href),'renardsend','width=360,height=140')})()`
+            : `javascript:(function(){window.open('${location.origin}/?url='+encodeURIComponent(location.href),'ytdlpstudio')})()`;
         $("bookmarklet").addEventListener("click", e => { e.preventDefault(); toast("Glissez ce bouton dans la barre de favoris."); });
 
         $("tabDl").addEventListener("click", () => setTab("dl"));
@@ -1263,6 +1044,11 @@
         $("ffmpeg").addEventListener("input", () => { onDownloadChange(true); refreshConvert(); });
         $("autoStart").addEventListener("change", e => store("ytdlp-autostart", e.target.checked ? "1" : "0"));
         $("goBtn").addEventListener("click", startDownload);
+        $("quickVideo").addEventListener("click", () => quick("maxcompat"));
+        $("quickMp3").addEventListener("click", () => quick("mp3"));
+        $("moreBtn").addEventListener("click", () => setMore(true));
+        $("lessBtn").addEventListener("click", () => setMore(false));
+        $("simpleDest").addEventListener("click", () => openPath($("dest").value.trim() || defaultDest));
         $("pickBtn").addEventListener("click", () => pick("/api/pick-folder", $("dest"), $("pickBtn"), () => onDownloadChange(true)));
         $("openDestBtn").addEventListener("click", () => openPath($("dest").value.trim()));
         $("resetDestBtn").addEventListener("click", () => { $("dest").value = defaultDest; onDownloadChange(true); });
@@ -1303,7 +1089,7 @@
         // File et serveur
         $("clearBtn").addEventListener("click", () => api("/api/clear", {}).then(poll).catch(fail));
         $("quitBtn").addEventListener("click", async () => {
-            if (!confirm("Arrêter le serveur ? Les téléchargements en cours seront annulés.")) return;
+            if (!(await Shell.ask("Arrêter le serveur ? Les téléchargements en cours seront annulés.", "arrêter", "annuler"))) return;
             try { await api("/api/quit", {}); } catch (e) { /* déjà arrêté */ }
             poll();
         });
@@ -1319,7 +1105,61 @@
             if (!addUrls(dt.getData("text/uri-list") || dt.getData("text/plain"))) toast("Aucun lien http(s) détecté.", true);
         });
 
+        if (DESKTOP) initDesktop();
         poll();
+    }
+
+    /* ------------------------------ app de bureau ------------------------------ */
+    let closing = false, updateVersion = "";
+    function appBanner(text, kind) {
+        const b = $("appBanner");
+        b.className = "banner " + (kind || "ok");
+        b.textContent = text;
+        b.hidden = !text;
+    }
+
+    function initDesktop() {
+        $("quitBtn").hidden = true;    // l'app arrête elle-même le serveur en se fermant
+
+        Shell.on("close-request", async () => {
+            if (closing) return;
+            if (jobs.some(isActive)) {
+                closing = true;
+                const ok = await Shell.ask("le renard n'a pas fini, quitter quand même ?", "quitter", "rester");
+                closing = false;
+                if (!ok) return;
+            }
+            Shell.post("close");
+        });
+
+        Shell.on("host", d => setText($("appVersion"), d.version ? " · v" + d.version : ""));
+        Shell.on("restart", () => Shell.post("restart-server"));
+
+        // Mise à jour : le renard tient un petit panneau ; un clic l'installe.
+        const onSign = () => {
+            if (jobs.some(isActive)) {
+                toast("Le renard finit d'abord ses téléchargements : réessaie juste après ✦");
+                return;
+            }
+            Scene.showSign(null);
+            Shell.post("update-apply");
+        };
+        Shell.on("update", d => {
+            updateVersion = d.version || "";
+            Scene.showSign("nouvelle version ✦", onSign);
+            $("foxSign").title = updateVersion ? "RENARD.mp3 " + updateVersion + " : cliquer pour installer" : "Cliquer pour installer";
+        });
+        Shell.on("update-status", d => {
+            if (d.state === "download") appBanner("Téléchargement de la nouvelle version" + (updateVersion ? " " + updateVersion : "") + "…");
+            else if (d.state === "install") appBanner("Installation… RENARD.mp3 va redémarrer tout seul.");
+            else if (d.state === "error") {
+                appBanner("Mise à jour impossible : " + (d.message || "erreur inconnue") + ". Réessaie plus tard.", "err");
+                Scene.showSign("nouvelle version ✦", onSign);
+                setTimeout(() => appBanner(""), 12000);
+            }
+        });
+        Shell.post("update-check");
+        setInterval(() => Shell.post("update-check"), 12 * 3600 * 1000);
     }
 
     document.addEventListener("DOMContentLoaded", init);
