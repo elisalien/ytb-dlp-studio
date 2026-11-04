@@ -29,10 +29,16 @@
         for (const fn of listeners) { try { fn({ muted, step }); } catch (e) { /* écouteur fautif */ } }
     }
 
+    // Navigateur : pas d'AudioContext avant un premier geste (sinon il reste muet
+    // et la console râle). L'app de bureau autorise le son dès le lancement.
+    const DESKTOP = !!(window.chrome && window.chrome.webview);
+    let wantPrepare = false;
+    const canStart = () => DESKTOP || !navigator.userActivation || navigator.userActivation.hasBeenActive;
+
     function ensure() {
         if (ctx) return ctx;
         const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return null;
+        if (!AC || !canStart()) return null;
         try { ctx = new AC(); } catch (e) { return null; }
         master = ctx.createGain();
         limiter = ctx.createDynamicsCompressor();
@@ -62,6 +68,7 @@
     function unlock() {
         if (!ensure()) return;
         if (ctx.state === "suspended") ctx.resume().catch(() => {});
+        if (wantPrepare) prepare();
     }
     for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, unlock, { capture: true, passive: true });
 
@@ -583,6 +590,7 @@
     }
 
     function prepare() {
+        wantPrepare = true;
         if (!ensure()) return;
         if (!musicPromise) musicPromise = renderMusic().then(b => (musicBuf = b)).catch(() => null);
         if (!laughPromise) laughPromise = renderLaugh().then(b => (laughBuf = b)).catch(() => null);
@@ -604,12 +612,14 @@
     }
 
     // Lance la boucle de l'alien ; renvoie une promesse résolue au démarrage.
+    let musicToken = 0;
     async function music() {
         prepare();
         stopMusic();
+        const token = musicToken;
         if (!musicPromise) return false;
         await musicPromise;
-        if (!musicBuf || !ctx) return false;
+        if (!musicBuf || !ctx || token !== musicToken) return false;   // arrêtée entre-temps
         musicSrc = playBuffer(musicBuf, musicBus);
         musicStart = ctx.currentTime;
         const src = musicSrc;
@@ -618,6 +628,7 @@
     }
 
     function stopMusic() {
+        musicToken++;
         if (musicSrc) { try { musicSrc.stop(); } catch (e) { /* déjà fini */ } }
         musicSrc = null;
     }

@@ -824,6 +824,7 @@
         const bounce = dancing ? Math.round(Math.max(0, 1 - ph * 2.2) * 3) : 0;
         const sway = dancing ? Math.round(Math.sin(mt / beat * Math.PI / 2) * 3) : 0;
         const spr = alienSprite({ arm: dancing ? Math.floor(b) : 0, leg: dancing ? (Math.floor(b) % 2 ? 1 : -1) : 0, ant: bounce > 1 ? 1 : 0, laugh: t < 1.4 || (dancing && Math.floor(b / 8) % 2 === 1) });
+        spr.raw = true;   // l'alien garde son vert pâle lumineux, même la nuit
         spr.draw(g, Math.round(egg.x - 11 + sway), egg.y - 26 - bounce, Math.floor(b / 4) % 2 === 1);
         if (dancing && Math.random() < 0.12) {
             emit(Math.random() < 0.5 ? "note" : "note2", egg.x + (Math.random() * 30 - 15), egg.y - 22 - Math.random() * 8, {
@@ -1013,7 +1014,12 @@
         signEl = document.getElementById("foxSign");
         if (signEl) signEl.addEventListener("click", () => { if (signHandler && !egg) signHandler(); });
         resize();
-        window.addEventListener("resize", resize);
+        let pending = false;
+        window.addEventListener("resize", () => {
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(() => { pending = false; resize(); });
+        });
         // Le canvas est derrière l'interface : on écoute au niveau du document
         // (seule la bande de colline, laissée libre, laisse passer les clics).
         document.addEventListener("pointerdown", e => { if (e.target === canvas || e.target === document.documentElement || e.target.id === "hillspace") onClick(e); });
