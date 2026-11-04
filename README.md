@@ -5,6 +5,30 @@ MP4 compatible, MP3, export HAP pour Resolume, extraction de frames — sans lig
 
 ---
 
+## RENARD.mp3 — l'app de bureau (Windows)
+
+La même app dans sa propre fenêtre (WebView2), en pixel art : paysage de montagne qui suit l'heure du jour, et un petit renard qui dort, court pendant les téléchargements, joue pendant les conversions et laisse des petits mots doux.
+
+**Installer** — téléchargez `RENARD-setup.exe` depuis la [dernière release](https://github.com/elisalien/ytb-dlp-studio/releases/latest) et lancez-le. Installation par utilisateur (pas de droits admin) dans `%LOCALAPPDATA%\RENARD.mp3`, outils inclus (yt-dlp, FFmpeg, Deno : fonctionne hors ligne dès le premier lancement), raccourcis Bureau et menu Démarrer. Les fichiers arrivent dans `Téléchargements\RENARD.mp3`. Nécessite Microsoft Edge WebView2 Runtime (présent sur Windows 10/11 à jour ; l'installateur prévient s'il manque).
+
+**Utiliser** — collez un lien, puis **Vidéo** ou **MP3**. « plus… » affiche tous les formats, l'onglet Convertir, la destination et les options. `Ctrl + M` coupe le son.
+
+**Mettre à jour** — l'app interroge les releases GitHub au lancement puis toutes les 12 h ; le renard brandit alors un panneau « nouvelle version ✦ », un clic installe et redémarre.
+
+**Publier une version** — poussez un tag `v2.x` :
+
+```bash
+git tag v2.0.1
+```
+
+```bash
+git push origin v2.0.1
+```
+
+Le workflow *Release* compile `RENARD.mp3.exe` (`desktop/build.ps1`), remplit `bin/` (`update.ps1`), construit `RENARD-setup.exe` (Inno Setup, `desktop/installer.iss`) et `RENARD-update.zip` (l'app sans `bin/`), et les joint à la release à côté des zips habituels. Le numéro du tag devient la version de l'app (`version.txt`).
+
+---
+
 ## Fonctionnalités (Windows)
 
 - **Téléchargement direct** — collez ou glissez vos liens, cliquez sur Télécharger : la progression s'affiche dans la file d'attente
@@ -59,6 +83,9 @@ Seul ce qui est périmé est retéléchargé. FFmpeg utilise la build *full* de 
 ```
 server.ps1        # serveur local : file d'attente yt-dlp / ffmpeg, API de la page
 index.html        # interface
+ui/               # paysage et renard (scene.js), sons (sound.js), coque (shell.js), styles
+desktop/          # RENARD.mp3 : hôte WebView2 (RenardHost.cs, build.ps1), installateur
+version.txt       # version de l'app de bureau
 launch.bat        # démarre le serveur et ouvre l'interface
 install.bat       # première installation (appelle update.ps1)
 update.ps1/.bat   # installe ou met à jour yt-dlp, Deno, FFmpeg dans bin/
@@ -88,7 +115,9 @@ Usage personnel et légal uniquement. Respectez le droit d'auteur.
 | FFmpeg | GPL/LGPL  | https://ffmpeg.org |
 | Deno   | MIT       | https://deno.com |
 
-Non redistribués : téléchargés à l'installation.
+| GNU Unifont (police pixel) | OFL 1.1 / GPL 2+ | https://unifoundry.com/unifont/ |
+
+Version dossier : outils téléchargés à l'installation. `RENARD-setup.exe` les inclut tels quels.
 
 ---
 

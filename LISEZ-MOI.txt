@@ -6,6 +6,43 @@ Telechargeur video 4K / 8K et convertisseur local, avec une
 interface dans le navigateur. Portable : tout reste dans ce dossier.
 
 ----------------------------------------------------------------
+ RENARD.mp3 (application de bureau)
+----------------------------------------------------------------
+
+RENARD.mp3 est la meme app dans sa propre fenetre, avec un petit
+renard pixel qui veille pendant les telechargements.
+
+Installer : telechargez RENARD-setup.exe depuis la derniere release
+GitHub et lancez-le. Pas de droits administrateur : l'app s'installe
+dans %LOCALAPPDATA%\RENARD.mp3, avec yt-dlp, FFmpeg et Deno inclus
+(rien a telecharger au premier lancement). Raccourcis sur le Bureau
+et dans le menu Demarrer. Les fichiers arrivent dans
+Telechargements\RENARD.mp3. Il faut le moteur Microsoft Edge
+WebView2 (deja present sur Windows 10 / 11 a jour) : l'installateur
+previent s'il manque.
+
+Utiliser : collez un lien puis "Video" ou "MP3". Le bouton "plus..."
+affiche tous les formats, l'onglet Convertir et les options.
+Ctrl + M coupe ou remet le son.
+
+Mise a jour : l'app verifie GitHub au lancement puis toutes les 12 h.
+Quand une version existe, le renard tient un panneau
+"nouvelle version" : un clic l'installe (apres les telechargements
+en cours) et l'app redemarre seule.
+
+Publier une nouvelle version (elisalien) : poussez un tag v2.x
+(ex. git tag v2.0.1 && git push origin v2.0.1). Le workflow
+"Release" compile RENARD.mp3.exe, l'installateur RENARD-setup.exe
+et le zip de mise a jour RENARD-update.zip, et les joint a la
+release. Le numero du tag devient la version de l'app.
+
+Desinstaller : Parametres Windows > Applications > RENARD.mp3.
+Les videos et musiques telechargees ne sont jamais supprimees.
+
+Le reste de ce mode d'emploi concerne la version "dossier"
+(launch.bat, interface dans le navigateur).
+
+----------------------------------------------------------------
  INSTALLATION (une seule fois)
 ----------------------------------------------------------------
 
@@ -93,8 +130,10 @@ YouTube, puis relancez update.bat.
 - FFmpeg  : https://ffmpeg.org                      (GPL/LGPL)
 - Deno    : https://deno.com                        (MIT)
 
-Ces logiciels ne sont PAS redistribues ici : ils sont telecharges
-par install.bat depuis leurs sites officiels.
+Dans la version dossier, ces logiciels sont telecharges par
+install.bat depuis leurs sites officiels. RENARD-setup.exe les
+inclut tels quels (versions officielles, licences d'origine).
+- Police pixel : GNU Unifont 15 (SIL OFL 1.1 / GPL 2+)
 ================================================================
 
 2026 - Elisalien
