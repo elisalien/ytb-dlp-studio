@@ -994,6 +994,11 @@ function Get-State([bool]$full, [int]$knownRev) {
     $st = @{ app = 'yt-dlp-studio'; updating = $Queue.Paused; rev = $rev }
     if ($full) { $st.settings = $script:Settings; $st.defaultDest = $DefaultDest }
     if ($full -or $knownRev -ne $rev) { $st.jobs = $Queue.Snapshot() }
+    # Liens recus du favori (/send) : rendus une seule fois a la page.
+    if ($Incoming.Count -gt 0) {
+        $st.incoming = $Incoming.ToArray()
+        $Incoming.Clear()
+    }
     return $st
 }
 
@@ -1130,9 +1135,25 @@ function Invoke-Request($ctx) {
         return
     }
     if ($req.HttpMethod -eq 'GET' -and $path -eq '/favicon.ico') {
-        $ico = Join-Path $Root 'assets\yt-dlp-studio.ico'
+        $ico = Join-Path $Root 'assets\renard.ico'
+        if (-not (Test-Path -LiteralPath $ico)) { $ico = Join-Path $Root 'assets\yt-dlp-studio.ico' }
         if (Test-Path -LiteralPath $ico) { Send-Bytes $ctx 200 ([IO.File]::ReadAllBytes($ico)) 'image/x-icon' }
         else { Send-Json $ctx 404 @{ error = 'not found' } }
+        return
+    }
+
+    # Favori de l'app de bureau : le lien est garde ici, /api/state le rend a la page
+    # (qui l'ajoute au champ et ramene la fenetre). Aucune action n'est lancee :
+    # un site tiers ne peut que proposer un lien. La petite page se ferme seule.
+    if ($req.HttpMethod -eq 'GET' -and $path -eq '/send') {
+        $u = [string]$req.QueryString['url']
+        $ok = $u.Length -le 4096 -and $u -match '^https?://[^\s]+$' -and $Incoming.Count -lt 50
+        if ($ok -and -not $Incoming.Contains($u)) { $Incoming.Add($u) }
+        $msg = if ($ok) { 'envoy&eacute; au renard &#9829;' } else { 'lien refus&eacute;' }
+        $page = '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><title>RENARD.mp3</title></head>' +
+            '<body style="margin:0;display:grid;place-items:center;height:100vh;background:#2b2f4a;color:#f6ecdc;font:16px monospace">' +
+            '<p>' + $msg + '</p><script>setTimeout(function(){window.close()},700)</script></body></html>'
+        Send-Bytes $ctx 200 ([Text.Encoding]::UTF8.GetBytes($page)) 'text/html; charset=utf-8'
         return
     }
 
@@ -1186,6 +1207,7 @@ if (-not $NoUpdate -and (Test-Path -LiteralPath $updateScript)) {
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $updateScript + '"'), '-Auto')
 }
 $Queue = [YtdlpStudio.JobQueue]::new($Root, $pathEnv, ($null -ne $UpdateProc))
+$Incoming = New-Object 'System.Collections.Generic.List[string]'
 
 $Listener = New-Object System.Net.HttpListener
 $Listener.Prefixes.Add($BaseUrl)
